@@ -8,8 +8,6 @@ function _init()
     create_player_vars()
     create_powerup_vars()
     create_enemy_vars()
-    
-    
 end
 
 function _update60()
@@ -31,7 +29,6 @@ function _draw()
     draw_enemy()
     draw_enemy_hitbox()
     draw_spawned()
-    
     --draw_particles() enable this to show a small effect in the corner
     --pset(30,30,dark_blue) draws to an individual pixel
 end
@@ -132,12 +129,8 @@ function player_fire()
     sfx(0)
 end
 
---currently this doesn't work and i don't know why.
 function draw_spawned()
-    print("yes",10,10,white) --is getting into the function
     for spawned in all(enemies) do --isn't getting into this loop
-        print("no",20,20,white)
-        
         spr(3,spawned.x,spawned.y)
     end
 end
@@ -225,12 +218,12 @@ end
 
 function move_enemy_right()
     enemy.x+=enemy.speed
-            enemy.counter += 1
+    enemy.counter += 1
 end
 
 function move_enemy_left()
     enemy.x -= enemy.speed
-            enemy.counter -= 1
+    enemy.counter -= 1
 end
 
 function enemy_collision ()
@@ -248,11 +241,6 @@ function draw_enemy_hitbox () --testing where the hitbox is
     rect(enemy.x+1,enemy.y+7,enemy.x+6,enemy.y,white)
 end    
 
-
-
-    
-
-    
 __gfx__
 00000000000000000000b000000000000088bb00009999000000b333000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000077000000b0b000005500009993b8009777790000b3773000000000000000000000000000000000000000000000000000000000000000000000000
