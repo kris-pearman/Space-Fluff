@@ -7,7 +7,8 @@ black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,oran
 function _init()
     create_player_vars()
     create_powerup_vars()
-    create_enemy_vars()
+    enemies = {}
+    bullets={}
     game_state = "start"
 end
 
@@ -15,34 +16,26 @@ function _update60()
     if game_state == "start" then
         check_game_started()
     else
-    handle_input()
-    move_bullets()
-    move_powerup()
-    hit_detect_powerup()
-    hide_enemy_if_dead()
-    enemy_collision()
+        handle_input()
+        move_bullets()
+        move_powerup()
+        hit_detect_powerup()
+        hide_dead_enemies()
+        enemy_collision()
     end
 end
 
 function _draw()
     cls(black)
     if game_state == "start" then
-        print("press fire to start",28,60,white)
-        
+        print("press fire to start",28,60,white)  
     else
-    
-    
-    draw_player()
-    draw_bullets()
-    draw_hud()
-    draw_powerup()
-    draw_enemy()
-    draw_enemy_hitbox()
-    draw_spawned()
-
+        draw_player()
+        draw_bullets()
+        draw_hud()
+        draw_powerup()
+        draw_enemies()
     end
-    --draw_particles() enable this to show a small effect in the corner
-    --pset(30,30,dark_blue) draws to an individual pixel
 end
 
 -->8
@@ -55,27 +48,11 @@ function check_game_started()
 end
 
 function create_player_vars()
-    player={} --player is a table
+    player={}
     player.alive=false
     player.x=59
     player.y=105
     player.score=0
-    bullets={}
-    --probably need to have a table of tables for bullets to allow multiple shots to fire at once
-end
-
-function create_enemy_vars()
-    enemy={}
-    enemy.alive=true
-    enemy.x=59
-    enemy.y=60
-    enemy.speed=1
-    enemy.tick_count=1 --used to calculate how often the enemys move updates, change this to change how often the enemy updates
-    enemy.value=200
-    enemy.counter=0
-    enemy.direction=1
-    enemies = {}
-    --probably need to have a table of tables for enemies to allow multiple enemies to be tracked at once
 end
 
 function create_powerup_vars()
@@ -93,16 +70,8 @@ end
 
 function draw_bullets()
     for bullet in all(bullets) do
-        draw_bullet(bullet)
+        rect(bullet.x,bullet.y,bullet.x+1,bullet.y-1,white)
     end 
-end
-
-function draw_bullet(bullet)
-    rect(bullet.x,bullet.y,bullet.x+1,bullet.y-1,white)
-end
-
-function draw_enemy()
-    spr(3,enemy.x,enemy.y)
 end
 
 function draw_hud()
@@ -113,7 +82,7 @@ end
     
 -->8
 --player input functions here
-function handle_input() --todo: Rename to handle_input()
+function handle_input() 
     if btn(left) then
         player.x -= 1
     end
@@ -125,17 +94,15 @@ function handle_input() --todo: Rename to handle_input()
     end
     if btn(down) then
         if player.y < 105 then
-        player.y += 1
+            player.y += 1
         end
     end
     if btnp(fire1) then
-        player_fire()
-        
+        player_fire()    
     end
     if btnp(fire2) then
         spawn_enemy()
     end
-
 end
 
 function player_fire()
@@ -147,23 +114,25 @@ function player_fire()
     sfx(0)
 end
 
-function draw_spawned()
-    for spawned in all(enemies) do 
-        spr(3,spawned.x,spawned.y)
+function draw_enemies()
+    for enemy in all(enemies) do 
+        spr(3,enemy.x,enemy.y)
     end
 end
 
 function spawn_enemy()
-    local spawned = {}
-    spawned.x = 10
-    spawned.y = 10
-    spawned.spr = 2
-    spawned.value = 100
-    spawned.alive = true
-    add(enemies, spawned)
+    local enemy={}
+    enemy.alive=true
+    enemy.x=59
+    enemy.y=60
+    enemy.speed=1
+    enemy.tick_count=1 --used to calculate how often the enemys move updates, change this to change how often the enemy updates
+    enemy.value=200
+    enemy.counter=0
+    enemy.direction=1 
+    add(enemies, enemy)
 end
     
-
 -->8
 --powerup functions here
 
@@ -192,81 +161,83 @@ end
 
 function move_bullets()
     for bullet in all(bullets) do
-        move_bullet(bullet)
-    end
-end
-
-function move_bullet(bullet)
-    if bullet.y > -1 then
-        bullet.y -= bullet.speed
-    else
-        del(bullets, bullet)
+        if bullet.y > -1 then
+            bullet.y -= bullet.speed
+        else
+            del(bullets, bullet)
+        end
     end
 end
 
 -->8
 --AI
 
-function hide_enemy_if_dead()
-    for spawned in all(enemies) do
-    if spawned.alive then
-        --check_enemy_moves()
-        --enemy.tick_count += 1
-    else
-        spawned.x = -10
+function hide_dead_enemies()
+    for enemy in all(enemies) do
+        if enemy.alive then
+            check_enemy_moves(enemy)
+            enemy.tick_count += 1
+        else
+            enemy.x = -10
+        end
     end
 end
 
-end
-
-function check_enemy_moves()
-    if enemy.tick_count%4 == 0 then -- only allows the following code to be run once every four frames
-        enemy.tick_count = 1 -- range could be changed to another word
-
+function check_enemy_moves(enemy)
+    if enemy.tick_count%4 == 0 then        
+        enemy.tick_count = 1
+        
         if  (enemy.counter < 5 and enemy.direction == 1)  then
-            move_enemy_right()
+            move_enemy_right(enemy)
         else 
             enemy.direction = 0
         end
-
+        
         if enemy.direction == 0 then
-            move_enemy_left()
+            move_enemy_left(enemy)
+            
             if enemy.counter <-5 then
                 enemy.direction = 1
             end
         end
-
     end   
 end
 
-function move_enemy_right()
+function move_enemy_right(enemy)
     enemy.x+=enemy.speed
     enemy.counter += 1
 end
 
-function move_enemy_left()
+function move_enemy_left(enemy)
     enemy.x -= enemy.speed
     enemy.counter -= 1
 end
 
-function enemy_collision ()
+function enemy_collision()
     for bullet in all(bullets) do
-        for spawned in all(enemies) do   
-            if (bullet.x > spawned.x+1 and bullet.x < spawned.x+6 and bullet.y > spawned.y and bullet.y < spawned.y +7) then
-                
-                spawned.alive = false
-                player.score += spawned.value
+        for enemy in all(enemies) do   
+            if (bullet.x > enemy.x+1 and
+                bullet.x < enemy.x+6 and
+                bullet.y > enemy.y and
+                bullet.y < enemy.y +7
+            ) then
+                enemy.alive = false
+                player.score += enemy.value
                 del(bullets, bullet)
                 sfx(2) 
             end
-    end
+        end
     end
 end
 
-function draw_enemy_hitbox () --testing where the hitbox is
-    rect(enemy.x+1,enemy.y+7,enemy.x+6,enemy.y,white)
-end    
 
+-- function draw_enemy_hitbox () --testing where the hitbox is
+--     rect(enemy.x+1,enemy.y+7,enemy.x+6,enemy.y,white)
+-- end 
+   
+--draw_particles() enable this to show a small effect in the corner
+    --pset(30,30,dark_blue) draws to an individual pixel
+    --draw_enemy_hitbox()
 __gfx__
 00000000000000000000b000000000000088bb00009999000000b333000000000000000000000000000000000000000000000000000000000000000000000000
 0000000000077000000b0b000005500009993b8009777790000b3773000000000000000000000000000000000000000000000000000000000000000000000000
