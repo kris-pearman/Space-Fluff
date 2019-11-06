@@ -130,10 +130,10 @@ function handle_input() --todo: Rename to handle_input()
     end
     if btnp(fire1) then
         player_fire()
-        spawn_enemy()
+        
     end
     if btnp(fire2) then
-        
+        spawn_enemy()
     end
 
 end
@@ -148,7 +148,7 @@ function player_fire()
 end
 
 function draw_spawned()
-    for spawned in all(enemies) do --isn't getting into this loop
+    for spawned in all(enemies) do 
         spr(3,spawned.x,spawned.y)
     end
 end
@@ -158,6 +158,8 @@ function spawn_enemy()
     spawned.x = 10
     spawned.y = 10
     spawned.spr = 2
+    spawned.value = 100
+    spawned.alive = true
     add(enemies, spawned)
 end
     
@@ -206,12 +208,15 @@ end
 --AI
 
 function hide_enemy_if_dead()
-    if enemy.alive then
-        check_enemy_moves()
-        enemy.tick_count += 1
+    for spawned in all(enemies) do
+    if spawned.alive then
+        --check_enemy_moves()
+        --enemy.tick_count += 1
     else
-        enemy.x = -10
+        spawned.x = -10
     end
+end
+
 end
 
 function check_enemy_moves()
@@ -246,12 +251,15 @@ end
 
 function enemy_collision ()
     for bullet in all(bullets) do
-        if (bullet.x > enemy.x+1 and bullet.x < enemy.x+6 and bullet.y > enemy.y and bullet.y < enemy.y +7) then
-            enemy.alive = false
-            player.score += enemy.value
-            del(bullets, bullet)
-            sfx(2) 
-        end
+        for spawned in all(enemies) do   
+            if (bullet.x > spawned.x+1 and bullet.x < spawned.x+6 and bullet.y > spawned.y and bullet.y < spawned.y +7) then
+                
+                spawned.alive = false
+                player.score += spawned.value
+                del(bullets, bullet)
+                sfx(2) 
+            end
+    end
     end
 end
 
