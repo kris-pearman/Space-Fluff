@@ -8,19 +8,29 @@ function _init()
     create_player_vars()
     create_powerup_vars()
     create_enemy_vars()
+    game_state = "start"
 end
 
 function _update60()
+    if game_state == "start" then
+        check_game_started()
+    else
     handle_input()
     move_bullets()
     move_powerup()
     hit_detect_powerup()
     hide_enemy_if_dead()
     enemy_collision()
+    end
 end
 
 function _draw()
     cls(black)
+    if game_state == "start" then
+        print("press fire to start",28,60,white)
+        
+    else
+    
     
     draw_player()
     draw_bullets()
@@ -29,12 +39,20 @@ function _draw()
     draw_enemy()
     draw_enemy_hitbox()
     draw_spawned()
+
+    end
     --draw_particles() enable this to show a small effect in the corner
     --pset(30,30,dark_blue) draws to an individual pixel
 end
 
 -->8
 --functions in here
+
+function check_game_started()
+    if btnp(fire1) then
+        game_state = "gameplay"
+   end
+end
 
 function create_player_vars()
     player={} --player is a table
