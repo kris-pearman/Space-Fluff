@@ -6,10 +6,10 @@ black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,oran
 
 function _init()
     create_player_vars()
-    create_powerup_vars()
     enemies = {}
     bullets={}
     game_state = "start"
+    powerups={}
 end
 
 function _update60()
@@ -55,13 +55,14 @@ function create_player_vars()
     player.score=0
 end
 
-function create_powerup_vars()
-    powerup={}
+function create_powerup()
+    local powerup={}
     powerup.x=59
     powerup.y=-10
     powerup.speed=1
     powerup.collected=false
     powerup.value=100
+    add(powerups,powerup)
 end
 
 function draw_player()
@@ -102,6 +103,7 @@ function handle_input()
     end
     if btnp(fire2) then
         spawn_enemy()
+        create_powerup()
     end
 end
 
@@ -137,22 +139,28 @@ end
 --powerup functions here
 
 function draw_powerup()
-    spr(2,powerup.x,powerup.y) 
+    for powerup in all(powerups) do
+        spr(2,powerup.x,powerup.y)
+    end 
 end
 
 function move_powerup()
-    if powerup.collected == false then
-        powerup.y += powerup.speed
-    else
-        powerup.x = -10
+    for powerup in all(powerups) do
+        if powerup.collected == false then
+            powerup.y += powerup.speed
+        else
+            del(powerups,powerup)
+        end
     end
 end
 
 function hit_detect_powerup()
-    if (player.x > powerup.x-2 and player.x < powerup.x+2 and player.y == powerup.y) then
-        powerup.collected = true
-        player.score += powerup.value
-        sfx(1)
+    for powerup in all(powerups) do
+        if (player.x > powerup.x-2 and player.x < powerup.x+2 and player.y == powerup.y) then
+            powerup.collected = true
+            player.score += powerup.value
+            sfx(1)
+        end
     end
 end
 
