@@ -178,7 +178,7 @@ function hide_dead_enemies()
             check_enemy_moves(enemy)
             enemy.tick_count += 1
         else
-            enemy.x = -10
+            del(enemies,enemy)
         end
     end
 end
@@ -234,7 +234,7 @@ end
 -- function draw_enemy_hitbox () --testing where the hitbox is
 --     rect(enemy.x+1,enemy.y+7,enemy.x+6,enemy.y,white)
 -- end 
-   
+
 --draw_particles() enable this to show a small effect in the corner
     --pset(30,30,dark_blue) draws to an individual pixel
     --draw_enemy_hitbox()
