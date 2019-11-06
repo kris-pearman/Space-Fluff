@@ -8,18 +8,17 @@ function _init()
     create_player_vars()
     enemies = {}
     bullets={}
-    game_state = "start"
+    game_state = "title"
     powerups={}
 end
 
 function _update60()
-    if game_state == "start" then
+    if game_state == "title" then
         check_game_started()
     else
         handle_input()
         move_bullets()
-        move_powerup()
-        hit_detect_powerup()
+        update_powerups()
         hide_dead_enemies()
         enemy_collision()
     end
@@ -27,7 +26,7 @@ end
 
 function _draw()
     cls(black)
-    if game_state == "start" then
+    if game_state == "title" then
         print("press fire to start",28,60,white)  
     else
         draw_player()
@@ -40,6 +39,12 @@ end
 
 -->8
 --functions in here
+function update_powerups()
+    for powerup in all(powerups) do
+        move_powerup(powerup)
+        detect_powerup_collection(powerup)
+    end
+end
 
 function check_game_started()
     if btnp(fire1) then
@@ -141,26 +146,25 @@ end
 function draw_powerup()
     for powerup in all(powerups) do
         spr(2,powerup.x,powerup.y)
-    end 
-end
-
-function move_powerup()
-    for powerup in all(powerups) do
-        if powerup.collected == false then
-            powerup.y += powerup.speed
-        else
-            del(powerups,powerup)
-        end
     end
 end
 
-function hit_detect_powerup()
-    for powerup in all(powerups) do
-        if (player.x > powerup.x-2 and player.x < powerup.x+2 and player.y == powerup.y) then
-            powerup.collected = true
-            player.score += powerup.value
-            sfx(1)
-        end
+function move_powerup(powerup)
+    if powerup.collected == false then
+        powerup.y += powerup.speed
+    else
+        del(powerups,powerup)
+    end
+end
+
+function detect_powerup_collection(powerup)
+    if (player.x > powerup.x-2 and
+        player.x < powerup.x+2 and
+        player.y == powerup.y
+    ) then
+        powerup.collected = true
+        player.score += powerup.value
+        sfx(1)
     end
 end
 
