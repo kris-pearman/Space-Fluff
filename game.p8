@@ -10,6 +10,8 @@ function _init()
     bullets={}
     game_state = "title"
     powerups={}
+    initialise_stars()
+    cur_frame=0
 end
 
 function _update60()
@@ -21,6 +23,7 @@ function _update60()
         update_powerups()
         hide_dead_enemies()
         enemy_collision()
+        cur_frame += 1
     end
 end
 
@@ -29,16 +32,44 @@ function _draw()
     if game_state == "title" then
         print("press fire to start",28,60,white)  
     else
+        draw_stars()
         draw_player()
         draw_bullets()
         draw_hud()
         draw_powerup()
         draw_enemies()
+        
     end
 end
 
 -->8
 --functions in here
+function initialise_stars()
+    stars = {}
+    for y = 0,128 do
+        for i = 0,8 do
+        star={}
+        star.x = flr(rnd(17))+2
+        star.y = -16-(y+flr(rnd(8)*flr(rnd(32)))) 
+        star.num = i
+        star.color = rnd(32)
+        add(stars,star)
+        end
+    end
+    
+end
+
+function draw_stars()
+    for star in all(stars) do
+        if star.y+cur_frame/4 > 128 then
+            star.y = -cur_frame/4
+        end
+        pset(star.x + star.num * 16,star.y+cur_frame/4+8,star.color)
+    end
+end
+        
+        
+
 function update_powerups()
     for powerup in all(powerups) do
         move_powerup(powerup)
