@@ -34,7 +34,7 @@ end
 function _draw()
     cls(black)
     if game_state == "title" then
-        print("press fire to start",28,60,white)  
+        print("press ❎ to start",28,60,white)  
     else
         draw_background()
         draw_player()
@@ -73,7 +73,6 @@ function init_star_array ()
 end
 
 function draw_background ()
-
     for x=0,15 do
         for y=0,15 do
             if background_initialised == 0 then    
@@ -85,13 +84,13 @@ function draw_background ()
     end
 --- 256 as tile covers twice screen height
     if background_tile_1_offset < 256 then
-        background_tile_1_offset += 1
+        background_tile_1_offset += 0.5
     else
         background_tile_1_offset = 0
     end
 
     if background_tile_2_offset < 256 then
-        background_tile_2_offset += 1
+        background_tile_2_offset += 0.5
     else
         background_tile_2_offset = 0
     end
@@ -99,8 +98,6 @@ function draw_background ()
     background_initialised = 1
     end
         
-        
-
 function update_powerups()
     for powerup in all(powerups) do
         move_powerup(powerup)
@@ -109,7 +106,7 @@ function update_powerups()
 end
 
 function check_game_started()
-    if btnp(fire1) then
+    if btnp(fire2) then
         game_state = "gameplay"
    end
 end
@@ -152,10 +149,14 @@ end
 --player input functions here
 function handle_input() 
     if btn(left) then
-        player.x -= 1
+        if player.x != 0 then
+            player.x -= 1
+        end
     end
     if btn(right) then
-        player.x += 1
+        if player.x != (129 - 8) then
+            player.x += 1
+        end
     end
     if btn(up) then
         player.y -= 1
