@@ -6,7 +6,7 @@ black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,oran
 
 function _init()
     create_player_vars()
-    enemies = {}
+    enemies={}
     bullets={}
     game_state = "title"
     powerups={}
@@ -16,6 +16,7 @@ function _init()
     background_array = {}
     background_tile_1_offset = 128
     background_tile_2_offset = 0
+    enemy_bullets = {}
 end
 
 function _update60()
@@ -27,6 +28,7 @@ function _update60()
         update_powerups()
         hide_dead_enemies()
         enemy_collision()
+        enemy_projectiles()
         cur_frame += 1
     end
 end
@@ -37,6 +39,7 @@ function _draw()
         print("press ❎ to start",28,60,white)  
     else
         draw_background()
+        draw_enemy_projectiles()
         draw_player()
         draw_bullets()
         draw_hud()
@@ -108,6 +111,7 @@ end
 function check_game_started()
     if btnp(fire2) then
         game_state = "gameplay"
+        music(-1)
    end
 end
 
@@ -117,6 +121,7 @@ function create_player_vars()
     player.x=59
     player.y=105
     player.score=0
+    player.lives=3
 end
 
 function create_powerup()
@@ -143,6 +148,8 @@ function draw_hud()
     rectfill(0,117,127,128,red)
     print("score:",5,120,white)
     print(player.score,30,120,white)
+    print("lives: ",80,120,white)
+    print(player.lives,105,120,white)
 end
     
 -->8
@@ -200,6 +207,13 @@ function spawn_enemy()
     enemy.value=200
     enemy.counter=0
     enemy.direction=1 
+    enemy.spawn_time = cur_frame-1
+    enemy.attack={}
+    enemy.attack.freq = 0
+    enemy.attack.speed = 0
+    enemy.attack.direction = 0
+    enemy.attack.sprite = 0
+    
     add(enemies, enemy)
 end
     
@@ -305,6 +319,40 @@ function enemy_collision()
     end
 end
 
+function enemy_projectiles()
+    for enemy in all(enemies) do
+        if ((cur_frame - enemy.spawn_time)%60) == 0 then
+            create_enemy_bullet(enemy)
+        else
+        end
+    end
+    for enemy_bullet in all(enemy_bullets) do
+        enemy_bullet.y += 0.25
+        if enemy_bullet.y > 128 then
+            del(enemy_bullets,enemy_bullet)
+        end
+        if (enemy_bullet.y < player.y+7 and enemy_bullet.y+6 > player.y and enemy_bullet.x<player.x+7 and enemy_bullet.x+7>player.x) then
+            sfx(0)
+            del(enemy_bullets,enemy_bullet)
+            player.lives -= 1
+        end
+    end 
+end
+
+function draw_enemy_projectiles()
+    for enemy_bullet in all(enemy_bullets) do
+        spr(enemy_bullet.sprite,enemy_bullet.x,enemy_bullet.y)
+    end    
+    --rect(player.x,player.y,player.x+7,player.y+7,white) uncomment to see hitbox
+end
+
+function create_enemy_bullet(enemy)
+    local enemy_bullet = {}
+    enemy_bullet.x  = enemy.x
+    enemy_bullet.y  = enemy.y+3
+    enemy_bullet.sprite = 5
+    add(enemy_bullets, enemy_bullet)
+end
 
 -- function draw_enemy_hitbox () --testing where the hitbox is
 --     rect(enemy.x+1,enemy.y+7,enemy.x+6,enemy.y,white)
