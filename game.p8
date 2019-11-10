@@ -123,6 +123,8 @@ function create_player_vars()
     player.alive=false
     player.x=59
     player.y=105
+    player.width = 7
+    player.height = 7
     player.score=0
     player.lives=3
 end
@@ -131,6 +133,8 @@ function create_powerup()
     local powerup={}
     powerup.x=59
     powerup.y=-10
+    powerup.width = 8
+    powerup.height = 6
     powerup.speed=1
     powerup.collected=false
     powerup.value=100
@@ -238,10 +242,7 @@ function move_powerup(powerup)
 end
 
 function detect_powerup_collection(powerup)
-    if (player.x > powerup.x-2 and
-        player.x < powerup.x+2 and
-        player.y == powerup.y
-    ) then
+    if (objects_have_collided(powerup, player)) then
         powerup.collected = true
         player.score += powerup.value
         sfx(1)
@@ -334,12 +335,19 @@ function enemy_projectiles()
         if enemy_bullet.y > 128 then
             del(enemy_bullets,enemy_bullet)
         end
-        if (enemy_bullet.y < player.y+7 and enemy_bullet.y+6 > player.y and enemy_bullet.x<player.x+7 and enemy_bullet.x+7>player.x) then
+        if (objects_have_collided(enemy_bullet, player)) then
             sfx(0)
             del(enemy_bullets,enemy_bullet)
             player.lives -= 1
         end
     end 
+end
+
+function objects_have_collided(object1, object2)
+    return object1.y < object2.y+object2.height and
+        object1.y + object1.height > object2.y and 
+        object1.x < object2.x + object2.width and 
+        object1.x + object1.width > object2.x
 end
 
 function draw_enemy_projectiles()
@@ -353,6 +361,8 @@ function create_enemy_bullet(enemy)
     local enemy_bullet = {}
     enemy_bullet.x  = enemy.x
     enemy_bullet.y  = enemy.y+3
+    enemy_bullet.width = 7
+    enemy_bullet.height = 6
     enemy_bullet.sprite = 5
     add(enemy_bullets, enemy_bullet)
 end
