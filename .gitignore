@@ -39,3 +39,10 @@ luac.out
 *.x86_64
 *.hex
 
+hello.p8
+fluff.p8
+music.p8
+platform.p8
+space.p8
+squashy.p8
+test.p8
