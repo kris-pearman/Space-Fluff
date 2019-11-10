@@ -30,6 +30,10 @@ function _update60()
         enemy_collision()
         enemy_projectiles()
         cur_frame += 1
+        if player.lives < 1 then
+            game_state = "title"
+            _init()
+        end
     end
 end
 
@@ -45,7 +49,6 @@ function _draw()
         draw_hud()
         draw_powerup()
         draw_enemies()
-        
     end
 end
 
