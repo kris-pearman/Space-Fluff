@@ -4,6 +4,7 @@ __lua__
 left,right,up,down,fire1,fire2=0,1,2,3,4,5
 black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,orange,yellow,green,blue,indigo,pink,peach=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 
+--main loop functions
 function _init()
     create_player_vars()
     enemies={}
@@ -17,7 +18,10 @@ function _init()
     background_tile_1_offset = 128
     background_tile_2_offset = 0
     enemy_bullets = {}
+    event_timeline = {}
+    create_events("enemy1", 5, 100, 50 )    
 end
+
 
 function _update60()
     if game_state == "title" then
@@ -29,6 +33,7 @@ function _update60()
         hide_dead_enemies()
         enemy_collision()
         enemy_projectiles()
+        check_event_timeline()
         cur_frame += 1
         if player.lives < 1 then
             game_state = "title"
@@ -46,14 +51,18 @@ function _draw()
         draw_enemy_projectiles()
         draw_player()
         draw_bullets()
-        draw_hud()
         draw_powerup()
         draw_enemies()
+
+        --KEEP THIS LAST. THAT MEANS YOU KRIS.
+        draw_hud()
+
+        print(cur_frame,5,5,white)
     end
 end
 
 -->8
---functions in here
+--creation functions
 
 function init_star_array ()
     star_array = {}
@@ -78,36 +87,12 @@ function init_star_array ()
 
 end
 
-function draw_background ()
-    for x=0,15 do
-        for y=0,15 do
-            if background_initialised == 0 then    
-                background_array[(x*16)+y]=flr(rnd(18))+1    
-            end
-            spr(star_array[background_array[(x*8)+y]], x*8, ((y*8)+background_tile_1_offset)-128)
-            spr(star_array[background_array[(x*8)+y]], x*8, ((y*8)+background_tile_2_offset)-128)
-        end
-    end
---- 256 as tile covers twice screen height
-    if background_tile_1_offset < 256 then
-        background_tile_1_offset += 0.5
-    else
-        background_tile_1_offset = 0
-    end
-
-    if background_tile_2_offset < 256 then
-        background_tile_2_offset += 0.5
-    else
-        background_tile_2_offset = 0
-    end
-
-    background_initialised = 1
-    end
-        
-function update_powerups()
-    for powerup in all(powerups) do
-        move_powerup(powerup)
-        detect_powerup_collection(powerup)
+function create_events(eventType, quantity, initialFrame, frequency)
+    for i=1,quantity do 
+        local event = {}
+        event.eventType = eventType
+        event.startFrame = initialFrame + (i*frequency)
+        add(event_timeline, event)
     end
 end
 
@@ -141,24 +126,48 @@ function create_powerup()
     add(powerups,powerup)
 end
 
-function draw_player()
-    spr(1,player.x,player.y)
+function player_fire()
+    local bullet = {}
+    bullet.x = player.x+3
+    bullet.y = player.y+1
+    bullet.width = 2
+    bullet.height = 2
+    bullet.speed=1
+    add(bullets, bullet)
+    sfx(0)
 end
 
-function draw_bullets()
-    for bullet in all(bullets) do
-        rect(bullet.x,bullet.y,bullet.x+1,bullet.y-1,white)
-    end 
-end
 
-function draw_hud()
-    rectfill(0,117,127,128,red)
-    print("score:",5,120,white)
-    print(player.score,30,120,white)
-    print("lives: ",80,120,white)
-    print(player.lives,105,120,white)
-end
+function spawn_enemy_event(x, y)
+    local enemy={}
+    enemy.alive=true
+    enemy.x=x
+    enemy.y=y
+    enemy.speed=1
+    enemy.tick_count=1 --used to calculate how often the enemys move updates, change this to change how often the enemy updates
+    enemy.value=200
+    enemy.counter=0
+    enemy.direction=1 
+    enemy.spawn_time = cur_frame-1
+    enemy.attack={}
+    enemy.attack.freq = 0
+    enemy.attack.speed = 0
+    enemy.attack.direction = 0
+    enemy.attack.sprite = 0
+    enemy.height = 6
+    enemy.width = 6
     
+    add(enemies, enemy)
+end
+
+
+function check_event_timeline()
+    for event in all(event_timeline) do
+        if(event.eventType=="enemy1" and cur_frame==event.startFrame) then
+            spawn_enemy_event(50,50)
+        end
+    end
+end
 -->8
 --player input functions here
 function handle_input() 
@@ -184,52 +193,17 @@ function handle_input()
         player_fire()    
     end
     if btnp(fire2) then
-        spawn_enemy()
         create_powerup()
     end
 end
 
-function player_fire()
-    local bullet = {}
-    bullet.x = player.x+3
-    bullet.y = player.y+1
-    bullet.speed=1
-    add(bullets, bullet)
-    sfx(0)
-end
-
-function draw_enemies()
-    for enemy in all(enemies) do 
-        spr(3,enemy.x,enemy.y)
-    end
-end
-
-function spawn_enemy()
-    local enemy={}
-    enemy.alive=true
-    enemy.x=59
-    enemy.y=60
-    enemy.speed=1
-    enemy.tick_count=1 --used to calculate how often the enemys move updates, change this to change how often the enemy updates
-    enemy.value=200
-    enemy.counter=0
-    enemy.direction=1 
-    enemy.spawn_time = cur_frame-1
-    enemy.attack={}
-    enemy.attack.freq = 0
-    enemy.attack.speed = 0
-    enemy.attack.direction = 0
-    enemy.attack.sprite = 0
-    
-    add(enemies, enemy)
-end
-    
 -->8
 --powerup functions here
 
-function draw_powerup()
+function update_powerups()
     for powerup in all(powerups) do
-        spr(2,powerup.x,powerup.y)
+        move_powerup(powerup)
+        detect_powerup_collection(powerup)
     end
 end
 
@@ -263,7 +237,7 @@ function move_bullets()
 end
 
 -->8
---AI
+--enemy functions
 
 function hide_dead_enemies()
     for enemy in all(enemies) do
@@ -293,9 +267,12 @@ function check_enemy_moves(enemy)
                 enemy.direction = 1
             end
         end
+        move_enemy_down(enemy)
     end   
 end
-
+function move_enemy_down(enemy)
+    enemy.y+=enemy.speed
+end
 function move_enemy_right(enemy)
     enemy.x+=enemy.speed
     enemy.counter += 1
@@ -309,11 +286,7 @@ end
 function enemy_collision()
     for bullet in all(bullets) do
         for enemy in all(enemies) do   
-            if (bullet.x > enemy.x+1 and
-                bullet.x < enemy.x+6 and
-                bullet.y > enemy.y and
-                bullet.y < enemy.y +7
-            ) then
+            if (objects_have_collided(bullet, enemy)) then
                 enemy.alive = false
                 player.score += enemy.value
                 del(bullets, bullet)
@@ -350,12 +323,6 @@ function objects_have_collided(object1, object2)
         object1.x + object1.width > object2.x
 end
 
-function draw_enemy_projectiles()
-    for enemy_bullet in all(enemy_bullets) do
-        spr(enemy_bullet.sprite,enemy_bullet.x,enemy_bullet.y)
-    end    
-    --rect(player.x,player.y,player.x+7,player.y+7,white) uncomment to see hitbox
-end
 
 function create_enemy_bullet(enemy)
     local enemy_bullet = {}
@@ -367,6 +334,76 @@ function create_enemy_bullet(enemy)
     add(enemy_bullets, enemy_bullet)
 end
 
+-->8
+--drawing
+
+function draw_background ()
+    for x=0,15 do
+        for y=0,15 do
+            if background_initialised == 0 then    
+                background_array[(x*16)+y]=flr(rnd(18))+1    
+            end
+            spr(star_array[background_array[(x*8)+y]], x*8, ((y*8)+background_tile_1_offset)-128)
+            spr(star_array[background_array[(x*8)+y]], x*8, ((y*8)+background_tile_2_offset)-128)
+        end
+    end
+--- 256 as tile covers twice screen height
+    if background_tile_1_offset < 256 then
+        background_tile_1_offset += 0.5
+    else
+        background_tile_1_offset = 0
+    end
+
+    if background_tile_2_offset < 256 then
+        background_tile_2_offset += 0.5
+    else
+        background_tile_2_offset = 0
+    end
+
+    background_initialised = 1
+    end
+
+    function draw_enemy_projectiles()
+        for enemy_bullet in all(enemy_bullets) do
+            spr(enemy_bullet.sprite,enemy_bullet.x,enemy_bullet.y)
+        end    
+        --rect(player.x,player.y,player.x+7,player.y+7,white) uncomment to see hitbox
+    end
+
+    function draw_powerup()
+        for powerup in all(powerups) do
+            spr(2,powerup.x,powerup.y)
+        end
+    end
+    
+    function draw_enemies()
+        for enemy in all(enemies) do 
+            spr(3,enemy.x,enemy.y)
+        end
+    end
+    
+    function draw_player()
+        spr(1,player.x,player.y)
+    end
+    
+    function draw_bullets()
+        for bullet in all(bullets) do
+            rect(bullet.x,bullet.y,bullet.x+1,bullet.y-1,white)
+        end 
+    end
+    
+    function draw_hud()
+        rectfill(0,117,127,128,red)
+        print("score:",5,120,white)
+        print(player.score,30,120,white)
+        print("lives: ",80,120,white)
+        print(player.lives,105,120,white)
+    end
+
+    -->8
+    --game states?
+
+    
 -- function draw_enemy_hitbox () --testing where the hitbox is
 --     rect(enemy.x+1,enemy.y+7,enemy.x+6,enemy.y,white)
 -- end 
@@ -377,14 +414,14 @@ end
 
     --49 to 52 = stars
 __gfx__
-00000000000000000000b000000000000088bb00009999000000b333000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000077000000b0b000005500009993b8009777790000b3773000000000000000000000000000000000000000000000000000000000000000000000000
-00000000006ee600003000300051150099a999889799997900b37733000000000000000000000000000000000000000000000000000000000000000000000000
-0000000005888850088008800517c15099999988979a99790b3773b3000000000000000000000000000000000000000000000000000000000000000000000000
-00000000058cc85088e888e8051cc1509aa99988979a9979b3773bb3000000000000000000000000000000000000000000000000000000000000000000000000
-000000000588885088888888005115009aa99988979999793773bb33000000000000000000000000000000000000000000000000000000000000000000000000
-000000000555555008800880000550000999988009777790373bb3b3000000000000000000000000000000000000000000000000000000000000000000000000
-00000000000000000000000000000000008888000099990033333333000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000770000000b000005500000088bb00009999000000b333000000000000000000000000000000000000000000000000000000000000000000000000
+0000000000eeee00000b0b000511500009993b8009777790000b3773000000000000000000000000000000000000000000000000000000000000000000000000
+000000000eeeeee000300030517c150099a999889799997900b37733000000000000000000000000000000000000000000000000000000000000000000000000
+00000000881111880880088051cc150099999988979a99790b3773b3000000000000000000000000000000000000000000000000000000000000000000000000
+00000000881cc18888e888e8051150009aa99988979a9979b3773bb3000000000000000000000000000000000000000000000000000000000000000000000000
+00000000881cc18888888888005500009aa99988979999793773bb33000000000000000000000000000000000000000000000000000000000000000000000000
+000000008811118808800880000000000999988009777790373bb3b3000000000000000000000000000000000000000000000000000000000000000000000000
+00000000888888880000000000000000008888000099990033333333000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
