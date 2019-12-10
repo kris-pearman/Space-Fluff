@@ -19,7 +19,14 @@ function _init()
     background_tile_2_offset = 0
     enemy_bullets = {}
     event_timeline = {}
-    create_events("enemy1", 5, 100, 50 )    
+    create_events("enemy1", 2, 100, 75 ,10,-20)  
+    create_events("enemy1", 1, 300, 75,80,-20)  
+    create_events("enemy1", 1, 350, 75 ,30,-20)  
+    create_events("enemy1", 1, 350, 75,100,-20)
+    create_events("enemy1", 4, 600, 60 ,40,-20)  
+    create_events("enemy1", 4, 600, 60, 80,-20)  
+    create_events("enemy1", 1, 850, 75 ,50,-20)  
+    create_events("enemy1", 1, 950, 75, 80,-20)  
 end
 
 
@@ -87,11 +94,13 @@ function init_star_array ()
 
 end
 
-function create_events(eventType, quantity, initialFrame, frequency)
+function create_events(eventType, quantity, initialFrame, frequency,x,y)
     for i=1,quantity do 
         local event = {}
         event.eventType = eventType
         event.startFrame = initialFrame + (i*frequency)
+        event.x = x
+        event.y = y
         add(event_timeline, event)
     end
 end
@@ -164,7 +173,7 @@ end
 function check_event_timeline()
     for event in all(event_timeline) do
         if(event.eventType=="enemy1" and cur_frame==event.startFrame) then
-            spawn_enemy_event(50,50)
+            spawn_enemy_event(event.x,event.y)
         end
     end
 end
@@ -247,6 +256,9 @@ function hide_dead_enemies()
         else
             del(enemies,enemy)
         end
+        if enemy.y>128 then
+            del(enemies,enemy)
+        end
     end
 end
 
@@ -269,6 +281,7 @@ function check_enemy_moves(enemy)
         end
         move_enemy_down(enemy)
     end   
+    
 end
 function move_enemy_down(enemy)
     enemy.y+=enemy.speed
@@ -299,12 +312,14 @@ end
 function enemy_projectiles()
     for enemy in all(enemies) do
         if ((cur_frame - enemy.spawn_time)%60) == 0 then
-            create_enemy_bullet(enemy)
+            if flr(rnd(3)) == 1 then
+                create_enemy_bullet(enemy)
+            end
         else
         end
     end
     for enemy_bullet in all(enemy_bullets) do
-        enemy_bullet.y += 0.25
+        enemy_bullet.y += 0.75
         if enemy_bullet.y > 128 then
             del(enemy_bullets,enemy_bullet)
         end
@@ -328,10 +343,12 @@ function create_enemy_bullet(enemy)
     local enemy_bullet = {}
     enemy_bullet.x  = enemy.x
     enemy_bullet.y  = enemy.y+3
-    enemy_bullet.width = 7
-    enemy_bullet.height = 6
-    enemy_bullet.sprite = 5
+    enemy_bullet.width = 2
+    enemy_bullet.height = 2
+    enemy_bullet.sprite = 7
     add(enemy_bullets, enemy_bullet)
+    sfx(0)
+    
 end
 
 -->8
@@ -414,8 +431,8 @@ function draw_background ()
 
     --49 to 52 = stars
 __gfx__
-00000000000770000000b000005500000088bb00009999000000b333000000000000000000000000000000000000000000000000000000000000000000000000
-0000000000eeee00000b0b000511500009993b8009777790000b3773000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000770000000b000005500000088bb00009999000000b333880000000000000000000000000000000000000000000000000000000000000000000000
+0000000000eeee00000b0b000511500009993b8009777790000b3773880000000000000000000000000000000000000000000000000000000000000000000000
 000000000eeeeee000300030517c150099a999889799997900b37733000000000000000000000000000000000000000000000000000000000000000000000000
 00000000881111880880088051cc150099999988979a99790b3773b3000000000000000000000000000000000000000000000000000000000000000000000000
 00000000881cc18888e888e8051150009aa99988979a9979b3773bb3000000000000000000000000000000000000000000000000000000000000000000000000
