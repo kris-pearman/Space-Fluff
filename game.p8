@@ -6,19 +6,8 @@ black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,oran
 
 --main loop functions
 function _init()
-    create_player_vars()
-    enemies={}
-    bullets={}
-    game_state = "title"
-    powerups={}
-    cur_frame=0
-    init_star_array()
-    background_initialised = 0
-    background_array = {}
-    background_tile_1_offset = 128
-    background_tile_2_offset = 0
-    enemy_bullets = {}
     event_timeline = {}
+    game_state = "title"
     hi_score=0
     create_events("enemy1", 2, 100, 75 ,10,-20)  
     create_events("enemy1", 1, 300, 75,80,-20)  
@@ -28,8 +17,23 @@ function _init()
     create_events("enemy1", 4, 600, 60, 80,-20)  
     create_events("enemy1", 1, 850, 75 ,50,-20)  
     create_events("enemy1", 1, 950, 75, 80,-20)  
+
+    init_session()
 end
 
+function init_session()
+    create_player_vars()
+    enemies={}
+    bullets={}
+    powerups={}
+    cur_frame=0
+    init_star_array()
+    background_initialised = 0
+    background_array = {}
+    background_tile_1_offset = 128
+    background_tile_2_offset = 0
+    enemy_bullets = {}
+end
 
 function _update60()
     if game_state == "title" then
@@ -113,32 +117,8 @@ function check_game_started()
     if btnp(fire2) then
         game_state = "gameplay"
         music(-1)
-        init_game_vars()
+        init_session()
    end
-end
-
-function init_game_vars() --this can be cleaned up massively but for now should reset all variables to their default without initialising the entire game
-    player={}
-    player.alive=false
-    player.x=59
-    player.y=105
-    player.width = 7
-    player.height = 7
-    player.score=0
-    player.lives=3
-    cur_frame=0
-    for enemy in all(enemies) do
-        del(enemies,enemy)
-    end
-    for bullet in all(bullets) do
-        del(bullets, bullet)
-    end
-    for enemy_bullet in all(enemy_bullets) do
-        del(enemy_bullets, enemy_bullet)
-    end
-    for powerup in all(powerups) do
-        del(powerups, powerup)
-    end
 end
 
 function create_player_vars()
