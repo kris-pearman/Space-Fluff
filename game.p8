@@ -17,7 +17,6 @@ function _init()
     create_events("enemy1", 4, 600, 60, 80,-20)  
     create_events("enemy1", 1, 850, 75 ,50,-20)  
     create_events("enemy1", 1, 950, 75, 80,-20)  
-
     init_session()
 end
 
@@ -39,20 +38,30 @@ function _update60()
     if game_state == "title" then
         check_game_started()
     else
-        handle_input()
-        move_bullets()
-        update_powerups()
-        hide_dead_enemies()
-        enemy_collision()
-        enemy_projectiles()
-        check_event_timeline()
-        cur_frame += 1
-        if player.lives < 1 then
-            if (player.score > hi_score) then
-                hi_score = player.score
+        if game_state == "gameplay" then
+            handle_input()
+            move_bullets()
+            update_powerups()
+            hide_dead_enemies()
+            enemy_collision()
+            enemy_projectiles()
+            player_collision_with_ship()
+            check_event_timeline()
+            cur_frame += 1
+            if player.lives < 1 then
+                game_state = "game over"
+                cur_frame = 0
+                if (player.score > hi_score) then
+                    hi_score = player.score
+                end
             end
+        end
+    end
+    if game_state == "game over" then
+        if cur_frame > 300 then
             game_state = "title"
         end
+        cur_frame += 1
     end
 end
 
@@ -61,18 +70,22 @@ function _draw()
     if game_state == "title" then
         print("press ❎ to start",28,60,white) 
         print("high score = " .. hi_score,33,100,white) 
-    else
-        draw_background()
-        draw_enemy_projectiles()
-        draw_player()
-        draw_bullets()
-        draw_powerup()
-        draw_enemies()
-
-        --KEEP THIS LAST. THAT MEANS YOU KRIS.
-        draw_hud()
-
-        print(cur_frame,5,5,white)
+    else 
+        if game_state == "gameplay" then
+            draw_background()
+            draw_enemy_projectiles()
+            draw_player()
+            draw_bullets()
+            draw_powerup()
+            draw_enemies()
+            --KEEP THIS LAST. THAT MEANS YOU KRIS.
+            draw_hud()
+        else 
+            if game_state == "game over" then
+                draw_game_over()
+            end
+            print(cur_frame,5,5,white)
+        end
     end
 end
 
@@ -99,7 +112,6 @@ function init_star_array ()
     for i=16,17 do
         star_array[i] = 53
     end
-
 end
 
 function create_events(eventType, quantity, initialFrame, frequency,x,y)
@@ -118,12 +130,12 @@ function check_game_started()
         game_state = "gameplay"
         music(-1)
         init_session()
-   end
+    end
 end
 
 function create_player_vars()
     player={}
-    player.alive=false
+    player.alive=true
     player.x=59
     player.y=105
     player.width = 7
@@ -155,7 +167,6 @@ function player_fire()
     sfx(0)
 end
 
-
 function spawn_enemy_event(x, y)
     local enemy={}
     enemy.alive=true
@@ -174,7 +185,6 @@ function spawn_enemy_event(x, y)
     enemy.attack.sprite = 0
     enemy.height = 6
     enemy.width = 6
-    
     add(enemies, enemy)
 end
 
@@ -189,29 +199,31 @@ end
 -->8
 --player input functions here
 function handle_input() 
-    if btn(left) then
-        if player.x != 0 then
-            player.x -= 1
+    if player.alive then
+        if btn(left) then
+            if player.x != 0 then
+                player.x -= 1
+            end
         end
-    end
-    if btn(right) then
-        if player.x != (129 - 8) then
-            player.x += 1
+        if btn(right) then
+            if player.x != (129 - 8) then
+                player.x += 1
+            end
         end
-    end
-    if btn(up) then
-        player.y -= 1
-    end
-    if btn(down) then
-        if player.y < 105 then
-            player.y += 1
+        if btn(up) then
+            player.y -= 1
         end
-    end
-    if btnp(fire1) then
-        player_fire()    
-    end
-    if btnp(fire2) then
-        create_powerup()
+        if btn(down) then
+            if player.y < 105 then
+                player.y += 1
+            end
+        end
+        if btnp(fire1) then
+            player_fire()    
+        end
+        if btnp(fire2) then
+            create_powerup()
+        end
     end
 end
 
@@ -274,7 +286,6 @@ end
 function check_enemy_moves(enemy)
     if enemy.tick_count%4 == 0 then        
         enemy.tick_count = 1
-        
         if  (enemy.counter < 5 and enemy.direction == 1)  then
             move_enemy_right(enemy)
         else 
@@ -338,6 +349,17 @@ function enemy_projectiles()
             player.lives -= 1
         end
     end 
+end
+
+
+function player_collision_with_ship()
+    for enemy in all(enemies) do 
+        if (objects_have_collided(enemy, player)) then
+            sfx(0)
+            del(enemies,enemy)
+            player.lives -= 1
+        end
+    end
 end
 
 function objects_have_collided(object1, object2)
@@ -425,6 +447,11 @@ function draw_background ()
         print("lives: ",80,120,white)
         print(player.lives,105,120,white)
     end
+
+    function draw_game_over()
+        print(game_state,50,50,blue)
+    end
+
 
     -->8
     --game states?
