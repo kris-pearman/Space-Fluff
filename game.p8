@@ -32,6 +32,7 @@ function init_session()
     background_tile_1_offset = 128
     background_tile_2_offset = 0
     enemy_bullets = {}
+    invuln_timer = 0
 end
 
 function _update60()
@@ -48,6 +49,14 @@ function _update60()
             player_collision_with_ship()
             check_event_timeline()
             cur_frame += 1
+            if player.invulnerable then
+                if invuln_timer > 1 then
+                    invuln_timer -= 1
+                else
+                    player.invulnerable = false
+                    invuln_timer = 0
+                end
+            end
             if player.lives < 1 then
                 game_state = "game over"
                 cur_frame = 0
@@ -85,7 +94,9 @@ function _draw()
                 draw_game_over()
             end
             print(cur_frame,5,5,white)
+            
         end
+        print(invuln_timer,50,5,blue)
     end
 end
 
@@ -142,6 +153,7 @@ function create_player_vars()
     player.height = 7
     player.score=0
     player.lives=3
+    player.invulnerable = false
 end
 
 function create_powerup()
@@ -196,6 +208,16 @@ function check_event_timeline()
         end
     end
 end
+
+
+function handle_player_death()
+    if player.invulnerable == false then
+        player.lives -= 1
+        player.invulnerable = true
+        invuln_timer = 180
+    end
+end
+
 -->8
 --player input functions here
 function handle_input() 
@@ -343,21 +365,25 @@ function enemy_projectiles()
         if enemy_bullet.y > 128 then
             del(enemy_bullets,enemy_bullet)
         end
-        if (objects_have_collided(enemy_bullet, player)) then
-            sfx(0)
-            del(enemy_bullets,enemy_bullet)
-            player.lives -= 1
+        if player.invulnerable == false then
+            if (objects_have_collided(enemy_bullet, player)) then
+                sfx(0)
+                del(enemy_bullets,enemy_bullet)
+                handle_player_death()
+            end
         end
     end 
 end
 
 
 function player_collision_with_ship()
-    for enemy in all(enemies) do 
-        if (objects_have_collided(enemy, player)) then
-            sfx(0)
-            del(enemies,enemy)
-            player.lives -= 1
+    if player.invulnerable == false then
+        for enemy in all(enemies) do 
+            if (objects_have_collided(enemy, player)) then
+                sfx(0)
+                del(enemies,enemy)
+                handle_player_death()
+            end
         end
     end
 end
@@ -431,7 +457,17 @@ function draw_background ()
     end
     
     function draw_player()
-        spr(1,player.x,player.y)
+        if player.invulnerable == false then
+            spr(1,player.x,player.y)
+        else
+            if invuln_timer > 30 then
+                if invuln_timer % 4 == 0 then
+                   spr(1,player.x,player.y)
+                end
+            else
+                spr(1,player.x,player.y)
+            end
+        end
     end
     
     function draw_bullets()
