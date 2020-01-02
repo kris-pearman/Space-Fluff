@@ -18,6 +18,8 @@ function _init()
     create_events("enemy1", 1, 850, 75 ,50,-20)  
     create_events("enemy1", 1, 950, 75, 80,-20)  
     init_session()
+
+    
 end
 
 function init_session()
@@ -33,6 +35,23 @@ function init_session()
     background_tile_2_offset = 0
     enemy_bullets = {}
     invuln_timer = 0
+    
+    for i=1,256 do
+        local background_star = {}
+        background_star.x = flr(rnd(256)) - 128
+        background_star.y = i%24*10-10
+        background_star.speed = flr(rnd(2))+1
+        if background_star.speed == 1 then
+            background_star.color = white
+        else
+            if background_star.speed == 2 then
+                background_star.color = dark_blue
+            else
+                background_star.color = dark_gray
+            end
+        end
+        add(background_array, background_star)
+    end
 end
 
 function _update60()
@@ -48,6 +67,7 @@ function _update60()
             enemy_projectiles()
             player_collision_with_ship()
             check_event_timeline()
+            move_background()
             cur_frame += 1
             if player.invulnerable then
                 if invuln_timer > 1 then
@@ -412,30 +432,32 @@ end
 --drawing
 
 function draw_background ()
-    for x=0,15 do
-        for y=0,15 do
-            if background_initialised == 0 then    
-                background_array[(x*16)+y]=flr(rnd(18))+1    
+    for background_star in all(background_array) do
+        pset(background_star.x,background_star.y,background_star.color)
+    end
+end
+
+function move_background()
+        for background_star in all(background_array) do
+            if cur_frame % background_star.speed == 0 then
+                background_star.y += 1
+                if background_star.y > 128 then 
+                    background_star.y = -8-flr(rnd(128))
+                    background_star.speed = flr(rnd(3)) + 1
+                    background_star.x = flr(rnd(256)) - 129
+                    if background_star.speed == 1 then
+                        background_star.color = white
+                    else
+                        if background_star.speed == 2 then
+                            background_star.color = dark_blue
+                        else
+                            background_star.color = dark_gray
+                        end
+                    end
             end
-            spr(star_array[background_array[(x*8)+y]], x*8, ((y*8)+background_tile_1_offset)-128)
-            spr(star_array[background_array[(x*8)+y]], x*8, ((y*8)+background_tile_2_offset)-128)
         end
     end
---- 256 as tile covers twice screen height
-    if background_tile_1_offset < 256 then
-        background_tile_1_offset += 0.5
-    else
-        background_tile_1_offset = 0
-    end
-
-    if background_tile_2_offset < 256 then
-        background_tile_2_offset += 0.5
-    else
-        background_tile_2_offset = 0
-    end
-
-    background_initialised = 1
-    end
+end
 
     function draw_enemy_projectiles()
         for enemy_bullet in all(enemy_bullets) do
