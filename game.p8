@@ -35,21 +35,25 @@ function init_session()
     background_tile_2_offset = 0
     enemy_bullets = {}
     invuln_timer = 0
+    explosions = {}
     
-    for i=1,256 do
+    for i=1,100 do
         local background_star = {}
-        background_star.x = flr(rnd(256)) - 128
-        background_star.y = i%24*10-10
-        background_star.speed = flr(rnd(2))+1
-        -- if background_star.speed == 1 then
-        --     background_star.color = white
-        -- else
-        --     if background_star.speed == 2 then
-        --         background_star.color = dark_blue
-        --     else
-        --         background_star.color = dark_gray
-        --     end
-        -- end
+        background_star.x = flr(rnd(128))
+        background_star.y = flr(rnd(200))-72 
+                
+        star_color_rnd = flr(rnd(40))+1
+        if (star_color_rnd >= 1 and star_color_rnd<=16) then
+            background_star.color = dark_blue
+        elseif (star_color_rnd >16 and star_color_rnd<=18) then
+            background_star.color = dark_purple
+        elseif (star_color_rnd >18 and star_color_rnd<=39) then
+            background_star.color = dark_gray
+        else
+            background_star.color = white
+        end   
+
+        set_star_speed(background_star)         
         add(background_array, background_star)
     end
 end
@@ -80,6 +84,7 @@ function _update60()
             if player.lives < 1 then
                 game_state = "game over"
                 cur_frame = 0
+                music(-1)
                 if (player.score > hi_score) then
                     hi_score = player.score
                 end
@@ -91,6 +96,9 @@ function _update60()
             game_state = "title"
         end
         cur_frame += 1
+        if btnp(fire2) then
+            game_state = "title"
+        end
     end
 end
 
@@ -107,16 +115,16 @@ function _draw()
             draw_bullets()
             draw_powerup()
             draw_enemies()
+            draw_explosions()
             --KEEP THIS LAST. THAT MEANS YOU KRIS.
             draw_hud()
         else 
             if game_state == "game over" then
                 draw_game_over()
-            end
-            print(cur_frame,5,5,white)
-            
+                
+                
+            end         
         end
-        print(invuln_timer,50,5,blue)
     end
 end
 
@@ -159,7 +167,7 @@ end
 function check_game_started()
     if btnp(fire2) then
         game_state = "gameplay"
-        music(-1)
+        music(0)
         init_session()
     end
 end
@@ -167,10 +175,10 @@ end
 function create_player_vars()
     player={}
     player.alive=true
-    player.x=59
+    player.x=60
     player.y=105
-    player.width = 7
-    player.height = 7
+    player.width = 6
+    player.height = 6
     player.score=0
     player.lives=3
     player.invulnerable = false
@@ -190,8 +198,8 @@ end
 
 function player_fire()
     local bullet = {}
-    bullet.x = player.x+3
-    bullet.y = player.y+1
+    bullet.x = player.x+2
+    bullet.y = player.y
     bullet.width = 2
     bullet.height = 2
     bullet.speed=1
@@ -364,12 +372,22 @@ function enemy_collision()
             if (objects_have_collided(bullet, enemy)) then
                 enemy.alive = false
                 player.score += enemy.value
+                create_explosion(enemy.x,enemy.y)
                 del(bullets, bullet)
                 sfx(2) 
             end
         end
     end
 end
+
+function create_explosion(x,y)
+    local explosion = {}
+    explosion.x = x
+    explosion.y = y
+    explosion.t = 0
+    add(explosions, explosion)
+end
+
 
 function enemy_projectiles()
     for enemy in all(enemies) do
@@ -424,7 +442,7 @@ function create_enemy_bullet(enemy)
     enemy_bullet.height = 2
     enemy_bullet.sprite = 7
     add(enemy_bullets, enemy_bullet)
-    sfx(0)
+    
     
 end
 
@@ -437,26 +455,64 @@ function draw_background ()
     end
 end
 
+function draw_explosions ()
+    for explosion in all (explosions) do
+        if explosion.t < 10 then
+            circ(explosion.x,explosion.y,explosion.t,red)
+            circ(explosion.x,explosion.y,explosion.t-1,orange)
+            circ(explosion.x,explosion.y,explosion.t-2,yellow)
+        else
+            del(explosions, explosion)
+        end
+        explosion.t += 1
+    end
+    
+end
+
 function move_background()
-        for background_star in all(background_array) do
-            if cur_frame % background_star.speed == 0 then
-                background_star.y += 1
-                if background_star.y > 128 then 
-                    background_star.y = -8-flr(rnd(128))
-                    background_star.speed = flr(rnd(3)) + 1
-                    background_star.x = flr(rnd(256)) - 129
-                    if background_star.speed == 1 then
-                        background_star.color = white
-                    else
-                        if background_star.speed == 2 then
-                            background_star.color = dark_blue
-                        else
-                            background_star.color = dark_gray
-                        end
-                    end
+    for background_star in all(background_array) do
+        if cur_frame % background_star.speed == 0 then
+            background_star.y += 1
+            if background_star.y > 128 then 
+                background_star.y = -8-flr(rnd(128))
+                background_star.x = flr(rnd(128))
+                set_star_speed(background_star)
             end
         end
     end
+end
+
+
+function set_star_speed(background_star)
+    s_x_diff = abs(background_star.x - 64) --the higher this number = the further from center of screen the star is
+
+    if background_star.color == dark_blue then
+        if s_x_diff > 48 then
+            background_star.speed = 18
+        elseif s_x_diff > 32 then
+            background_star.speed = 16
+        else
+            background_star.speed = 14
+        end
+    elseif background_star.color == dark_purple then
+        if s_x_diff > 48 then
+            background_star.speed = 10
+        elseif s_x_diff > 32 then
+            background_star.speed = 9
+        else
+            background_star.speed = 7
+        end
+    elseif background_star.color == dark_gray then
+        if s_x_diff > 48 then
+            background_star.speed = 3
+        elseif s_x_diff > 16 then
+            background_star.speed = (2+flr(rnd(2)))
+        else
+            background_star.speed = 2
+        end
+    else    
+        background_star.speed = 1    
+    end    
 end
 
     function draw_enemy_projectiles()
@@ -480,14 +536,14 @@ end
     
     function draw_player()
         if player.invulnerable == false then
-            spr(1,player.x,player.y)
+            spr(8,player.x,player.y)
         else
             if invuln_timer > 30 then
                 if invuln_timer % 4 == 0 then
-                   spr(1,player.x,player.y)
+                   spr(8,player.x,player.y)
                 end
             else
-                spr(1,player.x,player.y)
+                spr(8,player.x,player.y)
             end
         end
     end
@@ -499,6 +555,15 @@ end
     end
     
     function draw_hud()
+        for i=0,129 do
+            if i%2 == 0 then
+                pset(i,116,red)
+                pset(i,114,dark_purple)
+            else
+                pset(i-2,115,red)
+                pset(i-2,113,dark_purple)
+            end
+        end
         rectfill(0,117,127,128,red)
         print("score:",5,120,white)
         print(player.score,30,120,white)
@@ -507,7 +572,7 @@ end
     end
 
     function draw_game_over()
-        print(game_state,50,50,blue)
+        print(game_state,45,50,blue)
     end
 
 
@@ -525,13 +590,13 @@ end
 
     --49 to 52 = stars
 __gfx__
-00000000000770000000b000005500000088bb00009999000000b333880000000000000000000000000000000000000000000000000000000000000000000000
-0000000000eeee00000b0b000511500009993b8009777790000b3773880000000000000000000000000000000000000000000000000000000000000000000000
-000000000eeeeee000300030517c150099a999889799997900b37733000000000000000000000000000000000000000000000000000000000000000000000000
-00000000881111880880088051cc150099999988979a99790b3773b3000000000000000000000000000000000000000000000000000000000000000000000000
-00000000881cc18888e888e8051150009aa99988979a9979b3773bb3000000000000000000000000000000000000000000000000000000000000000000000000
-00000000881cc18888888888005500009aa99988979999793773bb33000000000000000000000000000000000000000000000000000000000000000000000000
-000000008811118808800880000000000999988009777790373bb3b3000000000000000000000000000000000000000000000000000000000000000000000000
+00000000000770000000b000005500000088bb00009999000000b333880000000022000000000000000000000000000000000000000000000000000000000000
+0000000000eeee00000b0b000511500009993b8009777790000b3773880000000488400000000000000000000000000000000000000000000000000000000000
+000000000eeeeee000300030517c150099a999889799997900b37733000000000811800000000000000000000000000000000000000000000000000000000000
+00000000881111880880088051cc150099999988979a99790b3773b3000000008855880000000000000000000000000000000000000000000000000000000000
+00000000881cc18888e888e8051150009aa99988979a9979b3773bb3000000004555540000000000000000000000000000000000000000000000000000000000
+00000000881cc18888888888005500009aa99988979999793773bb33000000008566580000000000000000000000000000000000000000000000000000000000
+000000008811118808800880000000000999988009777790373bb3b3000000000444400000000000000000000000000000000000000000000000000000000000
 00000000888888880000000000000000008888000099990033333333000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -563,6 +628,8 @@ __sfx__
 0112002004135040200413500105070250b1140b0130e1250b13400105040240212102035070251710509135001050904500105090230e122001050414507135091350b125091250b0350e055100350000000000
 011200201073502744177001774515735107030474313745157421a72202700107451c7200474209705137420970515740097031574000705137401c720117400b7050e742107410472002750007001375017720
 011200200c0430c04300004000043c6150000400004000040c043000040c043000043c61500004000040c0430c0430c043000040c0433c615000040c043000040004400004000040c0433c6150c0430000400004
+01120000107600e740107500e74010762007011375210752007000070115774157551176211752107740070015735157071577011755107600e7550070011762107400e7550070011762107600e775107440e760
 __music__
-03 03040544
+00 03040544
+02 05030644
 
