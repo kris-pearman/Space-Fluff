@@ -41,15 +41,15 @@ function init_session()
         background_star.x = flr(rnd(256)) - 128
         background_star.y = i%24*10-10
         background_star.speed = flr(rnd(2))+1
-        if background_star.speed == 1 then
-            background_star.color = white
-        else
-            if background_star.speed == 2 then
-                background_star.color = dark_blue
-            else
-                background_star.color = dark_gray
-            end
-        end
+        -- if background_star.speed == 1 then
+        --     background_star.color = white
+        -- else
+        --     if background_star.speed == 2 then
+        --         background_star.color = dark_blue
+        --     else
+        --         background_star.color = dark_gray
+        --     end
+        -- end
         add(background_array, background_star)
     end
 end
