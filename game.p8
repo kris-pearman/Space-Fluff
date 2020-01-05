@@ -10,8 +10,8 @@ function _init()
     game_state = "title"
     hi_score=0
     -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id)
-    create_events("enemy1", 2, 100, 50 ,20,-20,"enemy_one","group_1")  
-    create_events("enemy1", 1, 100, 50,80,-20,"enemy_two")  
+    create_events("enemy1", 4, 100, 25,20,-20,"enemy_one","group_1")  
+    create_events("enemy1", 4, 200, 50,80,-20,"empty_pattern")  
 
     
     init_session()
@@ -130,16 +130,21 @@ end
 
 function create_enemy_data(pattern)
     local patterns = {}
-    local test = {}
-    test.path = {{20,128,4}}
-    test.exit_d = "down"
-    test.exit_s = 1
-    patterns.enemy_one = test
+    local enemy_one = {}
+    enemy_one.path = {{10,10,2},{20,30,3},{30,10,4},{40,100,5},{50,10,6},{60,100,1}}
+    enemy_one.exit_d = "down"
+    enemy_one.exit_s = 4
+    patterns.enemy_one = enemy_one
     local enemy_two = {}
     enemy_two.path = {{80,128,4}}
     enemy_two.exit_d = "down"
     enemy_two.exit_s = 1
     patterns.enemy_two = enemy_two 
+    local empty_pattern = {}
+    empty_pattern.path = nil
+    empty_pattern.exit_d = "down"
+    empty_pattern.exit_s = "4"
+    patterns.empty_pattern = empty_pattern
     return patterns[pattern]
 end
 
@@ -330,35 +335,37 @@ end
 
 
 function check_enemy_moves(enemy)  --needs reworking but this controls basic movement
-        for coord in all(enemy.logic.path) do
-            local x = coord[1]
-            local y = coord[2]
-            local s = coord[3]
-            if enemy.tick_count%s == 0 then        
-                enemy.tick_count = 1
-            
-            if enemy.x > x then
-                move_enemy_left(enemy)
-            elseif enemy.x < x then
-                move_enemy_right(enemy)
-            end
-                if enemy.y < y then
-                move_enemy_down(enemy)
-            elseif enemy.y > y then
-                move_enemy_up(enemy)
-            end
-
-            if enemy.x == x then
-                if enemy.y == y then
-                    del(enemy.logic.path, coord)
-                end
-            end
-            return
+    for coord in all(enemy.logic.path) do
+        local x = coord[1]
+        local y = coord[2]
+        local s = coord[3]
+        if enemy.tick_count%s == 0 then        
+            enemy.tick_count = 0
         end
-        if #enemy.logic.path == 0 then
+        if enemy.x > x then
+            move_enemy_left(enemy)
+        elseif enemy.x < x then
+            move_enemy_right(enemy)
+        end
+            if enemy.y < y then
+            move_enemy_down(enemy)
+        elseif enemy.y > y then
+            move_enemy_up(enemy)
+        end
+
+        if enemy.x == x then
+            if enemy.y == y then
+                del(enemy.logic.path, coord)
+            end
+        end
+        return
+        
+    end
+    if enemy.tick_count%enemy.logic.exit_s == 0 then
+        if enemy.logic.path == nil or #enemy.logic.path == 0 then
             move_enemy_down(enemy)
         end
-    end   
+    end
 end
 
 function move_enemy_down(enemy)
