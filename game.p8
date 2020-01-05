@@ -9,14 +9,17 @@ function _init()
     event_timeline = {}
     game_state = "title"
     hi_score=0
-    create_events("enemy1", 2, 100, 75 ,10,-20)  
-    create_events("enemy1", 1, 300, 75,80,-20)  
-    create_events("enemy1", 1, 350, 75 ,30,-20)  
-    create_events("enemy1", 1, 350, 75,100,-20)
-    create_events("enemy1", 4, 600, 60 ,40,-20)  
-    create_events("enemy1", 4, 600, 60, 80,-20)  
-    create_events("enemy1", 1, 850, 75 ,50,-20)  
-    create_events("enemy1", 1, 950, 75, 80,-20)  
+    create_events("enemy1", 2, 100, 75 ,10,-20,1)  
+    create_events("enemy1", 1, 300, 75,80,-20,1)  
+    create_events("enemy1", 1, 350, 75 ,30,-20,1)  
+    create_events("enemy1", 1, 350, 75,100,-20,1)
+    create_events("enemy1", 4, 600, 60 ,40,-20,1)  
+    create_events("enemy1", 4, 600, 60, 80,-20,1)  
+    create_events("enemy1", 1, 850, 75 ,50,-20,1)  
+    create_events("enemy1", 1, 950, 75, 80,-20,1) 
+    create_events("enemy1", 1, 50, 75, -20,40,4) 
+    create_events("enemy1", 1, 50, 75, 148,20,5)
+    
     init_session()
 
     
@@ -28,7 +31,6 @@ function init_session()
     bullets={}
     powerups={}
     cur_frame=0
-    init_star_array()
     background_initialised = 0
     background_array = {}
     background_tile_1_offset = 128
@@ -131,35 +133,22 @@ end
 -->8
 --creation functions
 
-function init_star_array ()
-    star_array = {}
-    for i=1,17 do 
-        star_array[i] = 52
-        i+= 1
-    end
-    for i=12,14 do
-        star_array[i] = 51
-        i+=1
-    end
-    for i=14,15 do
-        star_array[i] = 50
-        i+=1
-    end
-    for i=15,16 do
-        star_array[i] = 49
-    end
-    for i=16,17 do
-        star_array[i] = 53
-    end
+function create_enemy_data()
+    local enemy_one = {}
+    enemy_one.path = {{20,10},{15,30},{100,20}}
+    enemy_one.exit_d = "down"
+    enemy_one.exit_s = 1
+    return enemy_one
 end
 
-function create_events(eventType, quantity, initialFrame, frequency,x,y)
+function create_events(eventType, quantity, initialFrame, frequency,x,y,direction)
     for i=1,quantity do 
         local event = {}
         event.eventType = eventType
         event.startFrame = initialFrame + (i*frequency)
         event.x = x
         event.y = y
+        event.d = direction
         add(event_timeline, event)
     end
 end
@@ -207,7 +196,7 @@ function player_fire()
     sfx(0)
 end
 
-function spawn_enemy_event(x, y)
+function spawn_enemy_event(x, y,direction)
     local enemy={}
     enemy.alive=true
     enemy.x=x
@@ -216,7 +205,7 @@ function spawn_enemy_event(x, y)
     enemy.tick_count=1 --used to calculate how often the enemys move updates, change this to change how often the enemy updates
     enemy.value=200
     enemy.counter=0
-    enemy.direction=1 
+    enemy.direction=direction
     enemy.spawn_time = cur_frame-1
     enemy.attack={}
     enemy.attack.freq = 0
@@ -225,6 +214,8 @@ function spawn_enemy_event(x, y)
     enemy.attack.sprite = 0
     enemy.height = 6
     enemy.width = 6
+    enemy.type = "enemy1"
+    enemy.logic = create_enemy_data()
     add(enemies, enemy)
 end
 
@@ -232,7 +223,7 @@ end
 function check_event_timeline()
     for event in all(event_timeline) do
         if(event.eventType=="enemy1" and cur_frame==event.startFrame) then
-            spawn_enemy_event(event.x,event.y)
+            spawn_enemy_event(event.x,event.y,event.d)
         end
     end
 end
@@ -333,29 +324,46 @@ function hide_dead_enemies()
     end
 end
 
-function check_enemy_moves(enemy)
+
+function check_enemy_moves(enemy)  --needs reworking but this controls basic movement
     if enemy.tick_count%4 == 0 then        
         enemy.tick_count = 1
-        if  (enemy.counter < 5 and enemy.direction == 1)  then
-            move_enemy_right(enemy)
-        else 
-            enemy.direction = 0
-        end
-        
-        if enemy.direction == 0 then
-            move_enemy_left(enemy)
+        for coord in all(enemy.logic.path) do
+            local x = coord[1]
+            local y = coord[2]
             
-            if enemy.counter <-5 then
-                enemy.direction = 1
+            if enemy.x > x then
+                move_enemy_left(enemy)
+            elseif enemy.x < x then
+                move_enemy_right(enemy)
             end
+                if enemy.y < y then
+                move_enemy_down(enemy)
+            elseif enemy.y > y then
+                move_enemy_up(enemy)
+            end
+
+            if enemy.x == x then
+                if enemy.y == y then
+                    del(enemy.logic.path, coord)
+                end
+            end
+            return
         end
-        move_enemy_down(enemy)
+        if #enemy.logic.path == 0 then
+            move_enemy_down(enemy)
+        end
     end   
-    
 end
+
 function move_enemy_down(enemy)
     enemy.y+=enemy.speed
 end
+
+function move_enemy_up(enemy)
+    enemy.y-=enemy.speed
+end
+
 function move_enemy_right(enemy)
     enemy.x+=enemy.speed
     enemy.counter += 1
