@@ -9,18 +9,13 @@ function _init()
     event_timeline = {}
     game_state = "title"
     hi_score=0
-    create_events("enemy1", 2, 100, 75 ,10,-20,1)  
-    create_events("enemy1", 1, 300, 75,80,-20,1)  
-    create_events("enemy1", 1, 350, 75 ,30,-20,1)  
-    create_events("enemy1", 1, 350, 75,100,-20,1)
-    create_events("enemy1", 4, 600, 60 ,40,-20,1)  
-    create_events("enemy1", 4, 600, 60, 80,-20,1)  
-    create_events("enemy1", 1, 850, 75 ,50,-20,1)  
-    create_events("enemy1", 1, 950, 75, 80,-20,1) 
-    create_events("enemy1", 1, 50, 75, -20,40,4) 
-    create_events("enemy1", 1, 50, 75, 148,20,5)
+    -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id)
+    create_events("enemy1", 2, 100, 50 ,20,-20,"enemy_one","group_1")  
+    create_events("enemy1", 1, 100, 50,80,-20,"enemy_two")  
+
     
     init_session()
+    print_debug_message = false
 
     
 end
@@ -133,22 +128,30 @@ end
 -->8
 --creation functions
 
-function create_enemy_data()
-    local enemy_one = {}
-    enemy_one.path = {{20,10},{15,30},{100,20}}
-    enemy_one.exit_d = "down"
-    enemy_one.exit_s = 1
-    return enemy_one
+function create_enemy_data(pattern)
+    local patterns = {}
+    local test = {}
+    test.path = {{20,128,4}}
+    test.exit_d = "down"
+    test.exit_s = 1
+    patterns.enemy_one = test
+    local enemy_two = {}
+    enemy_two.path = {{80,128,4}}
+    enemy_two.exit_d = "down"
+    enemy_two.exit_s = 1
+    patterns.enemy_two = enemy_two 
+    return patterns[pattern]
 end
 
-function create_events(eventType, quantity, initialFrame, frequency,x,y,direction)
+function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,group_id)
     for i=1,quantity do 
         local event = {}
         event.eventType = eventType
         event.startFrame = initialFrame + (i*frequency)
         event.x = x
         event.y = y
-        event.d = direction
+        event.p = pattern
+        event.g = group_id
         add(event_timeline, event)
     end
 end
@@ -173,13 +176,13 @@ function create_player_vars()
     player.invulnerable = false
 end
 
-function create_powerup()
+function create_powerup(x,y)
     local powerup={}
-    powerup.x=59
-    powerup.y=-10
+    powerup.x=x
+    powerup.y=y
     powerup.width = 8
     powerup.height = 6
-    powerup.speed=1
+    powerup.speed=4
     powerup.collected=false
     powerup.value=100
     add(powerups,powerup)
@@ -196,7 +199,7 @@ function player_fire()
     sfx(0)
 end
 
-function spawn_enemy_event(x, y,direction)
+function spawn_enemy_event(x, y,pattern,group)
     local enemy={}
     enemy.alive=true
     enemy.x=x
@@ -205,7 +208,6 @@ function spawn_enemy_event(x, y,direction)
     enemy.tick_count=1 --used to calculate how often the enemys move updates, change this to change how often the enemy updates
     enemy.value=200
     enemy.counter=0
-    enemy.direction=direction
     enemy.spawn_time = cur_frame-1
     enemy.attack={}
     enemy.attack.freq = 0
@@ -214,8 +216,8 @@ function spawn_enemy_event(x, y,direction)
     enemy.attack.sprite = 0
     enemy.height = 6
     enemy.width = 6
-    enemy.type = "enemy1"
-    enemy.logic = create_enemy_data()
+    enemy.logic = create_enemy_data(pattern)
+    enemy.group = group
     add(enemies, enemy)
 end
 
@@ -223,7 +225,7 @@ end
 function check_event_timeline()
     for event in all(event_timeline) do
         if(event.eventType=="enemy1" and cur_frame==event.startFrame) then
-            spawn_enemy_event(event.x,event.y,event.d)
+            spawn_enemy_event(event.x,event.y,event.p,event.g)
         end
     end
 end
@@ -280,7 +282,9 @@ end
 
 function move_powerup(powerup)
     if powerup.collected == false then
-        powerup.y += powerup.speed
+        if cur_frame%powerup.speed == 0 then
+            powerup.y += 1
+        end
     else
         del(powerups,powerup)
     end
@@ -326,11 +330,12 @@ end
 
 
 function check_enemy_moves(enemy)  --needs reworking but this controls basic movement
-    if enemy.tick_count%4 == 0 then        
-        enemy.tick_count = 1
         for coord in all(enemy.logic.path) do
             local x = coord[1]
             local y = coord[2]
+            local s = coord[3]
+            if enemy.tick_count%s == 0 then        
+                enemy.tick_count = 1
             
             if enemy.x > x then
                 move_enemy_left(enemy)
@@ -375,6 +380,7 @@ function move_enemy_left(enemy)
 end
 
 function enemy_collision()
+    local counter = 0
     for bullet in all(bullets) do
         for enemy in all(enemies) do   
             if (objects_have_collided(bullet, enemy)) then
@@ -382,6 +388,19 @@ function enemy_collision()
                 player.score += enemy.value
                 create_explosion(enemy.x,enemy.y)
                 del(bullets, bullet)
+                if enemy.group  ~= nil  then
+                    for group_check in all(enemies) do
+                        if group_check.alive then
+                            if group_check.group == enemy.group then
+                                counter += 1
+                            end
+                        end
+                    end
+                    if counter == 0 then
+                        create_powerup(enemy.x,enemy.y)
+                    end
+                end
+
                 sfx(2) 
             end
         end
