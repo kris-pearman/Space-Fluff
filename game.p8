@@ -9,11 +9,17 @@ function _init()
     event_timeline = {}
     game_state = "title"
     hi_score=0
-    -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id)
-    create_events("enemy1", 4, 100, 25,20,-20,"enemy_one","group_1")  
-    create_events("enemy1", 4, 200, 50,80,-20,"empty_pattern")  
+    -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,default_speed)
+    create_events("enemy1", 4, 100, 30,80,-20,"empty_pattern",nil,2)  
+    create_events("enemy1", 4, 500, 30,40,-20,"empty_pattern",nil,2)
+    create_events("enemy1", 4, 900, 25,20,-20,"square","group_1",1,4)
+    create_events("enemy1", 4, 1400, 25,-30,5,"zig_zag","group_1",2,4)   
+    create_events("enemy1", 1, 1900, 30,15,-20,"empty_pattern",3,2)
+    create_events("enemy1", 1, 1925, 30,35,-20,"empty_pattern",3,2)
+    create_events("enemy1", 1, 1950, 30,55,-20,"empty_pattern",3,2)
+    create_events("enemy1", 1, 1975, 30,75,-20,"empty_pattern",3,2)
+    create_events("enemy1", 1, 2000, 30,95,-20,"empty_pattern",3,2)
 
-    
     init_session()
     print_debug_message = false
 
@@ -70,6 +76,9 @@ function _update60()
             check_event_timeline()
             move_background()
             cur_frame += 1
+            if cool_down > 0 then
+                cool_down -= 1
+            end
             if player.invulnerable then
                 if invuln_timer > 1 then
                     invuln_timer -= 1
@@ -128,13 +137,15 @@ end
 -->8
 --creation functions
 
-function create_enemy_data(pattern)
+function create_enemy_data(pattern,speed)
     local patterns = {}
-    local enemy_one = {}
-    enemy_one.path = {{10,10,2},{20,30,3},{30,10,4},{40,100,5},{50,10,6},{60,100,1}}
-    enemy_one.exit_d = "down"
-    enemy_one.exit_s = 4
-    patterns.enemy_one = enemy_one
+    local square = {}
+    square.path = {{32,32,3},{92,32,3},{92,92,3},{32,92,3},{32,32,2},{60,50,2}}
+    square.exit_d = "down"
+    square.exit_s = 1
+    square.fire = true
+    square.fire_rate = 120
+    patterns.square = square
     local enemy_two = {}
     enemy_two.path = {{80,128,4}}
     enemy_two.exit_d = "down"
@@ -143,12 +154,21 @@ function create_enemy_data(pattern)
     local empty_pattern = {}
     empty_pattern.path = nil
     empty_pattern.exit_d = "down"
-    empty_pattern.exit_s = "4"
+    empty_pattern.exit_s = speed
     patterns.empty_pattern = empty_pattern
+    local zig_zag = {}
+    zig_zag.path = {{100,25,2},{45,80,3},{100,80,3}}
+    zig_zag.exit_d = "down"
+    zig_zag.exit_s = speed
+    zig_zag.fire = true
+    zig_zag.fire_rate = 120
+    patterns.zig_zag = zig_zag
+
+    
     return patterns[pattern]
 end
 
-function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,group_id)
+function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,speed)
     for i=1,quantity do 
         local event = {}
         event.eventType = eventType
@@ -157,6 +177,7 @@ function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,
         event.y = y
         event.p = pattern
         event.g = group_id
+        event.s = speed
         add(event_timeline, event)
     end
 end
@@ -179,6 +200,8 @@ function create_player_vars()
     player.score=0
     player.lives=3
     player.invulnerable = false
+    cool_down = 0
+    num_of_bullets = 0
 end
 
 function create_powerup(x,y)
@@ -204,7 +227,7 @@ function player_fire()
     sfx(0)
 end
 
-function spawn_enemy_event(x, y,pattern,group)
+function spawn_enemy_event(x, y,pattern,group,speed)
     local enemy={}
     enemy.alive=true
     enemy.x=x
@@ -221,7 +244,7 @@ function spawn_enemy_event(x, y,pattern,group)
     enemy.attack.sprite = 0
     enemy.height = 6
     enemy.width = 6
-    enemy.logic = create_enemy_data(pattern)
+    enemy.logic = create_enemy_data(pattern,speed)
     enemy.group = group
     add(enemies, enemy)
 end
@@ -230,7 +253,7 @@ end
 function check_event_timeline()
     for event in all(event_timeline) do
         if(event.eventType=="enemy1" and cur_frame==event.startFrame) then
-            spawn_enemy_event(event.x,event.y,event.p,event.g)
+            spawn_enemy_event(event.x,event.y,event.p,event.g,event.s)
         end
     end
 end
@@ -267,10 +290,14 @@ function handle_input()
             end
         end
         if btnp(fire1) then
-            player_fire()    
+            if (cool_down == 0 and num_of_bullets < 3) then
+                player_fire()    
+                cool_down = 10
+                num_of_bullets += 1
+            end
         end
         if btnp(fire2) then
-            create_powerup()
+           
         end
     end
 end
@@ -312,6 +339,7 @@ function move_bullets()
             bullet.y -= bullet.speed
         else
             del(bullets, bullet)
+            num_of_bullets -= 1
         end
     end
 end
@@ -339,9 +367,13 @@ function check_enemy_moves(enemy)  --needs reworking but this controls basic mov
         local x = coord[1]
         local y = coord[2]
         local s = coord[3]
-        if enemy.tick_count%s == 0 then        
-            enemy.tick_count = 0
+        if x == play_x then
+            x = player.x
         end
+
+        if enemy.tick_count%s == 0 then        
+            enemy.tick_count = 1
+        
         if enemy.x > x then
             move_enemy_left(enemy)
         elseif enemy.x < x then
@@ -352,7 +384,7 @@ function check_enemy_moves(enemy)  --needs reworking but this controls basic mov
         elseif enemy.y > y then
             move_enemy_up(enemy)
         end
-
+    end
         if enemy.x == x then
             if enemy.y == y then
                 del(enemy.logic.path, coord)
@@ -393,8 +425,9 @@ function enemy_collision()
             if (objects_have_collided(bullet, enemy)) then
                 enemy.alive = false
                 player.score += enemy.value
-                create_explosion(enemy.x,enemy.y)
+                create_explosion(enemy.x+2,enemy.y)
                 del(bullets, bullet)
+                num_of_bullets -= 1
                 if enemy.group  ~= nil  then
                     for group_check in all(enemies) do
                         if group_check.alive then
@@ -404,7 +437,7 @@ function enemy_collision()
                         end
                     end
                     if counter == 0 then
-                        create_powerup(enemy.x,enemy.y)
+                        create_powerup(enemy.x-1,enemy.y-3)
                     end
                 end
 
@@ -425,11 +458,13 @@ end
 
 function enemy_projectiles()
     for enemy in all(enemies) do
-        if ((cur_frame - enemy.spawn_time)%60) == 0 then
-            if flr(rnd(3)) == 1 then
-                create_enemy_bullet(enemy)
+        if enemy.logic.fire then
+            if ((cur_frame - enemy.spawn_time)%enemy.logic.fire_rate) == 0 then
+                if flr(rnd(3)) == 1  then
+                    create_enemy_bullet(enemy)
+                end
+            else
             end
-        else
         end
     end
     for enemy_bullet in all(enemy_bullets) do
@@ -470,7 +505,7 @@ end
 
 function create_enemy_bullet(enemy)
     local enemy_bullet = {}
-    enemy_bullet.x  = enemy.x
+    enemy_bullet.x  = enemy.x+2
     enemy_bullet.y  = enemy.y+3
     enemy_bullet.width = 2
     enemy_bullet.height = 2
