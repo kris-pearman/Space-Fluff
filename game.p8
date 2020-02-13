@@ -9,7 +9,7 @@ function _init()
     event_timeline = {}
     game_state = "title"
     hi_score=0
-    title_frame = 0
+    title_frame = -80
     -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,default_speed)
     create_events("enemy1", 4, 100, 30,80,-20,"empty_pattern",nil,2)  
     create_events("enemy1", 4, 500, 30,40,-20,"empty_pattern",nil,2)
@@ -22,6 +22,10 @@ function _init()
     for i=1,5 do
         create_events("enemy1", 1, 2600+(20*i), 30,100-(i*15),-20,"empty_pattern",3,3)
     end
+    for i=1,5 do
+        create_events("enemy1", 1, 3400+(20*i), 30,90-(i*15),-20,"empty_pattern",3,2)
+    end
+    create_events("enemy1", 4, 3000, 25,-30,5,"zig_zag_2","group_1",2,4)
     init_session()
     print_debug_message = false
     decoration_speed = 1
@@ -35,6 +39,10 @@ function init_session()
     create_player_vars()
     
     enemies={}
+    boss={}
+    boss.x=50
+    boss.y=50
+    boss.bullets={}
     bullets={}
     powerups={}
     cur_frame=0
@@ -75,7 +83,7 @@ function _update60()
             title_frame += 1
         end
         if transition == true then
-            title_offset+=1
+            title_offset+=2
             
         end
         if title_offset == 128 then
@@ -95,6 +103,7 @@ function _update60()
             player_collision_with_ship()
             check_event_timeline()
             move_background()
+            enemy_bullet_direction = flr(rnd(3))
             cur_frame += 1
             if cool_down > 0 then
                 cool_down -= 1
@@ -136,6 +145,7 @@ function _draw()
         print("high score = " .. hi_score,33-title_offset,100,white) 
     else 
         if game_state == "gameplay" then
+            print(enemy_bullet_direction,20,20,white)
             draw_decorations()
             draw_background()
             draw_enemy_projectiles()
@@ -144,6 +154,7 @@ function _draw()
             draw_powerup()
             draw_enemies()
             draw_explosions()
+            create_boss()
             --KEEP THIS LAST. THAT MEANS YOU KRIS.
             draw_hud()
         else 
@@ -167,7 +178,7 @@ function create_enemy_data(pattern,speed)
     square.exit_d = "down"
     square.exit_s = 1
     square.fire = true
-    square.fire_rate = 120
+    square.fire_rate = 100
     patterns.square = square
     local enemy_two = {}
     enemy_two.path = {{80,128,4}}
@@ -184,18 +195,32 @@ function create_enemy_data(pattern,speed)
     zig_zag.exit_d = "down"
     zig_zag.exit_s = speed
     zig_zag.fire = true
-    zig_zag.fire_rate = 120
+    zig_zag.fire_rate = 80
     patterns.zig_zag = zig_zag
+    local zig_zag_2 = {}
+    zig_zag_2.path = {{100,65,2},{45,20,3},{100,30,3}}
+    zig_zag_2.exit_d = "down"
+    zig_zag_2.exit_s = speed
+    zig_zag_2.fire = true
+    zig_zag_2.fire_rate = 80
+    patterns.zig_zag_2 = zig_zag_2
     local wave = {}
     wave.path = {{0,30,3},{15,15,3},{30,30,3},{45,15,3},{60,30,3},{75,15,3},{90,30,3},{115,15,3},{130,30,3}}
     wave.exit_d = "down"
     wave.exit_s = speed
     wave.fire = true
-    wave.fire_rate = 60
+    wave.fire_rate = 80
     patterns.wave = wave
 
     
     return patterns[pattern]
+end
+
+function create_boss()
+    if cur_frame > 5000 then
+    sspr(112,0,16,16,boss.x,boss.y)
+    print("yes",20,20,white)
+    end
 end
 
 function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,speed)
@@ -273,8 +298,8 @@ function spawn_enemy_event(x, y,pattern,group,speed)
     enemy.attack.speed = 0
     enemy.attack.direction = 0
     enemy.attack.sprite = 0
-    enemy.height = 6
-    enemy.width = 6
+    enemy.height = 8
+    enemy.width = 8
     enemy.logic = create_enemy_data(pattern,speed)
     enemy.group = group
     add(enemies, enemy)
@@ -491,7 +516,7 @@ function enemy_projectiles()
     for enemy in all(enemies) do
         if enemy.logic.fire then
             if ((cur_frame - enemy.spawn_time)%enemy.logic.fire_rate) == 0 then
-                if flr(rnd(3)) == 1  then
+                if  flr((rnd(4))) == 1  then
                     create_enemy_bullet(enemy)
                 end
             else
@@ -500,6 +525,16 @@ function enemy_projectiles()
     end
     for enemy_bullet in all(enemy_bullets) do
         enemy_bullet.y += 0.75
+        if cur_frame%enemy_bullet.x_speed==(0) then
+            if enemy_bullet.direction == 1 then
+                enemy_bullet.x -= flr(rnd(2))
+            else if enemy_bullet.direction == 2 then
+                enemy_bullet.x += flr(rnd(2))
+            else
+            end
+            end
+        end
+
         if enemy_bullet.y > 128 then
             del(enemy_bullets,enemy_bullet)
         end
@@ -537,10 +572,12 @@ end
 function create_enemy_bullet(enemy)
     local enemy_bullet = {}
     enemy_bullet.x  = enemy.x+2
-    enemy_bullet.y  = enemy.y+3
-    enemy_bullet.width = 2
-    enemy_bullet.height = 2
-    enemy_bullet.sprite = 7
+    enemy_bullet.y  = enemy.y+4
+    enemy_bullet.x_speed = 4
+    enemy_bullet.direction = enemy_bullet_direction
+    enemy_bullet.width = 4
+    enemy_bullet.height = 4
+    enemy_bullet.sprite = 1
     add(enemy_bullets, enemy_bullet)
     
     
@@ -580,7 +617,7 @@ function move_background()
             end
         end
     end
-    if cur_frame%40 == 0 then
+    if cur_frame%30 == 0 then
     decoration_ypos += 1
     end
 end
@@ -633,7 +670,7 @@ end
     
     function draw_enemies()
         for enemy in all(enemies) do 
-            spr(3,enemy.x,enemy.y)
+            spr(19,enemy.x,enemy.y)
         end
     end
     
@@ -686,6 +723,17 @@ end
             spr(255,53,decoration_ypos-28+decoration_speed)
             
         end
+
+        if (cur_frame > 1000 ) then
+            pal(1,2,0)
+            pal(13,14,0)
+            spr(238,95,decoration_ypos-86+decoration_speed)
+            spr(239,103,decoration_ypos-86+decoration_speed)
+            spr(254,95,decoration_ypos-78+decoration_speed)
+            spr(255,103,decoration_ypos-78+decoration_speed)
+            pal()
+            
+        end
     end
 
     function draw_title_logo()
@@ -721,14 +769,14 @@ __gfx__
 000000000000000088888888005500009aa99988979999793773bb3300000000856658000000000000000000000000000000000000000000512277776c1c2215
 000000000000000008800880000000000999988009777790373bb3b300000000044440000000000000000000000000000000000000000000512d7776c1c1d215
 0000000000000000000000000000000000888800009999003333333300000000000000000000000000000000000000000000000000000000512d776c1c1cd215
-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000512d76c1c1c1d215
-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000512d6c1c1c1cd215
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005122c1c1c1c12215
-000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051122c1c1c122115
-0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051122dddd221150
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051122222211500
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005111111115000
-00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000555555550000
+0000000000000000000000000055550000000000000000000000000000000000000000000000000000000000000000000000000000000000512d76c1c1c1d215
+0000000000000000000000000511115000000000000000000000000000000000000000000000000000000000000000000000000000000000512d6c1c1c1cd215
+00000000000000000000000051776c15000000000000000000000000000000000000000000000000000000000000000000000000000000005122c1c1c1c12215
+0000000000000000000000005176cc150000000000000000000000000000000000000000000000000000000000000000000000000000000051122c1c1c122115
+000000000000000000000000516ccc1500000000000000000000000000000000000000000000000000000000000000000000000000000000051122dddd221150
+00000000000000000000000051cccc15000000000000000000000000000000000000000000000000000000000000000000000000000000000051122222211500
+00000000000000000000000005111150000000000000000000000000000000000000000000000000000000000000000000000000000000000005111111115000
+00000000000000000000000000555500000000000000000000000000000000000000000000000000000000000000000000000000000000000000555555550000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -856,7 +904,7 @@ __sfx__
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-00020000177301b7301f7301b7301e730227301e730237302773024730277302b730287302b7302e7402b7402f740337402e740327403774032740357403a7300070000700007000070000700007000070000700
+00060000170501b0501f0501b0501e050220501e04023040270402b0402f04033020360203a020100000a00006000020000000000000030000a0000c0000c0000d00000000000000000000000000000000000000
 __music__
 00 03040544
 02 05030644
