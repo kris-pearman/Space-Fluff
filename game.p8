@@ -40,8 +40,12 @@ function init_session()
     
     enemies={}
     boss={}
-    boss.x=50
-    boss.y=50
+    boss.x=200
+    boss.y=10
+    boss.width = 16
+    boss.height = 16
+    boss.hp = 10
+    boss_killed = false
     boss.bullets={}
     bullets={}
     powerups={}
@@ -51,6 +55,7 @@ function init_session()
     background_tile_1_offset = 128
     background_tile_2_offset = 0
     enemy_bullets = {}
+    boss_bullets = {}
     invuln_timer = 0
     explosions = {}
     decoration_ypos = 1
@@ -90,7 +95,7 @@ function _update60()
             transition = false
             game_state = "gameplay"
             title_offset = 0
-            music(0)
+            music(0,60)
         end
     else
         if game_state == "gameplay" then
@@ -103,6 +108,9 @@ function _update60()
             player_collision_with_ship()
             check_event_timeline()
             move_background()
+            if boss_killed == false then
+            boss_ai()
+            end
             enemy_bullet_direction = flr(rnd(3))
             cur_frame += 1
             if cool_down > 0 then
@@ -145,16 +153,20 @@ function _draw()
         print("high score = " .. hi_score,33-title_offset,100,white) 
     else 
         if game_state == "gameplay" then
-            print(enemy_bullet_direction,20,20,white)
+            
             draw_decorations()
             draw_background()
             draw_enemy_projectiles()
+            draw_boss_projectiles()
             draw_player()
             draw_bullets()
             draw_powerup()
             draw_enemies()
             draw_explosions()
+            if boss_killed == false then
             create_boss()
+            boss_collision()
+            end
             --KEEP THIS LAST. THAT MEANS YOU KRIS.
             draw_hud()
         else 
@@ -218,8 +230,95 @@ end
 
 function create_boss()
     if cur_frame > 5000 then
+        music(-1,60)
+        
     sspr(112,0,16,16,boss.x,boss.y)
-    print("yes",20,20,white)
+    boss_exists = true
+    end
+end
+
+function boss_ai()
+    if boss_exists == true then
+        move_boss()
+        check_boss_fires()
+        move_boss_bullets()
+    end
+end
+
+function boss_collision()
+    for bullet in all(bullets) do
+        if (objects_have_collided(bullet, boss)) then
+            boss.hp -=1
+            del(bullets,bullet)
+            num_of_bullets -= 1
+        end
+    end
+    if boss.hp < 1 then
+        boss_killed = true
+        player.score += 10000
+    end
+end
+
+function move_boss()
+    if cur_frame%2 == 0 then
+        if boss.direction == left then
+            boss.x -= 1
+        end
+        if boss.x < 20 then
+            boss.direction = right
+        end
+        if boss.direction == right then
+            boss.x += 1
+        end
+            if boss.x>80 then
+            boss.direction = left
+        end
+    end
+    
+end
+
+
+function check_boss_fires()
+    if cur_frame%45 == 0 then
+        for i=1,3,1 do 
+            spawn_boss_bullet(i)
+        end
+    end
+end
+
+
+function spawn_boss_bullet(i)
+    local boss_bullet = {}
+    boss_bullet.x = boss.x + 5
+    boss_bullet.y  = boss.y+12
+    boss_bullet.x_speed = 4
+    boss_bullet.direction = i
+    boss_bullet.width = 4
+    boss_bullet.height = 4
+    boss_bullet.sprite = 1
+    add(boss_bullets, boss_bullet)
+end
+
+function move_boss_bullets()
+    for boss_bullet in all(boss_bullets) do
+        boss_bullet.y += 1
+        if boss_bullet.direction == 1 then
+            boss_bullet.x -= 1
+        end
+        if boss_bullet.direction == 2 then
+            boss_bullet.x += 1
+        end
+
+        if boss_bullet.y > 128 then
+            del(boss_bullets,boss_bullet)
+        end
+        if player.invulnerable == false then
+            if (objects_have_collided(boss_bullet, player)) then
+                sfx(0)
+                del(boss_bullets,boss_bullet)
+                handle_player_death()
+            end
+        end
     end
 end
 
@@ -579,8 +678,6 @@ function create_enemy_bullet(enemy)
     enemy_bullet.height = 4
     enemy_bullet.sprite = 1
     add(enemy_bullets, enemy_bullet)
-    
-    
 end
 
 -->8
@@ -658,6 +755,12 @@ end
     function draw_enemy_projectiles()
         for enemy_bullet in all(enemy_bullets) do
             spr(enemy_bullet.sprite,enemy_bullet.x,enemy_bullet.y)
+        end    
+        --rect(player.x,player.y,player.x+7,player.y+7,white) uncomment to see hitbox
+    end
+    function draw_boss_projectiles()
+        for boss_bullet in all(boss_bullets) do
+            spr(boss_bullet.sprite,boss_bullet.x,boss_bullet.y)
         end    
         --rect(player.x,player.y,player.x+7,player.y+7,white) uncomment to see hitbox
     end
@@ -769,14 +872,14 @@ __gfx__
 000000000000000088888888005500009aa99988979999793773bb3300000000856658000000000000000000000000000000000000000000512277776c1c2215
 000000000000000008800880000000000999988009777790373bb3b300000000044440000000000000000000000000000000000000000000512d7776c1c1d215
 0000000000000000000000000000000000888800009999003333333300000000000000000000000000000000000000000000000000000000512d776c1c1cd215
-0000000000000000000000000055550000000000000000000000000000000000000000000000000000000000000000000000000000000000512d76c1c1c1d215
-0000000000000000000000000511115000000000000000000000000000000000000000000000000000000000000000000000000000000000512d6c1c1c1cd215
-00000000000000000000000051776c15000000000000000000000000000000000000000000000000000000000000000000000000000000005122c1c1c1c12215
-0000000000000000000000005176cc150000000000000000000000000000000000000000000000000000000000000000000000000000000051122c1c1c122115
-000000000000000000000000516ccc1500000000000000000000000000000000000000000000000000000000000000000000000000000000051122dddd221150
-00000000000000000000000051cccc15000000000000000000000000000000000000000000000000000000000000000000000000000000000051122222211500
-00000000000000000000000005111150000000000000000000000000000000000000000000000000000000000000000000000000000000000005111111115000
-00000000000000000000000000555500000000000000000000000000000000000000000000000000000000000000000000000000000000000000555555550000
+0000000000000000000000000055550000000000000000000000000000000000000220000000000000000000000000000000000000000000512d76c1c1c1d215
+0000000000000000000000000511115000000000000000000000000000000000004884000000000000000000000000000000000000000000512d6c1c1c1cd215
+00000000000000000000000051776c15000000000000000000000000000000000081180000000000000000000000000000000000000000005122c1c1c1c12215
+0000000000000000000000005176cc150000000000000000000000000000000008855880000000000000000000000000000000000000000051122c1c1c122115
+000000000000000000000000516ccc1500000000000000000000000000000005045555405000000000000000000000000000000000000000051122dddd221150
+00000000000000000000000051cccc15000000000000000000000000000000050856658050000000000000000000000000000000000000000051122222211500
+00000000000000000000000005111150000000000000000000000000600000056688886650000046000000000000000000000000000000000005111111115000
+00000000000000000000000000555500000000000000000000000000000000000008800000000000000000000000000000000000000000000000555555550000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
