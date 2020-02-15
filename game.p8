@@ -11,22 +11,22 @@ function _init()
     game_state = "title"
     hi_score=0
     title_frame = -80
-    -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,default_speed)
-    create_events("enemy1", 4, 100, 35,80,-20,"empty_pattern",nil,2)  
-    create_events("enemy1", 4, 500, 35,40,-20,"empty_pattern",nil,2)
-    create_events("enemy1", 4, 900, 44,20,-20,"square","group_1",1,4)
-    create_events("enemy1", 4, 1500, 44,-30,5,"zig_zag","group_1",2,4)   
+    -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,default_speed,colour)
+    create_events("enemy1", 4, 100, 35,80,-20,"empty_pattern",nil,2,12)  
+    create_events("enemy1", 4, 500, 35,40,-20,"empty_pattern",nil,2,8)
+    create_events("enemy1", 4, 900, 44,20,-20,"square","group_1",1,4,9)
+    create_events("enemy1", 4, 1500, 44,-30,5,"zig_zag","group_1",2,4,10)   
     for i=1,5 do
-        create_events("enemy1", 1, 1900+(30*i), 30,15+(i*15),-20,"empty_pattern",3,3)
+        create_events("enemy1", 1, 1900+(30*i), 30,15+(i*15),-20,"empty_pattern",3,3,11)
     end
-    create_events("enemy1", 8, 2250, 60,-30,15,"wave",4,4)
+    create_events("enemy1", 8, 2250, 60,-30,15,"wave",4,4,12)
     for i=1,5 do
-        create_events("enemy1", 1, 2800+(30*i), 30,100-(i*15),-20,"empty_pattern",3,3)
+        create_events("enemy1", 1, 2800+(30*i), 30,100-(i*15),-20,"empty_pattern",3,3,8)
     end
     for i=1,5 do
-        create_events("enemy1", 1, 4000+(30*i), 30,90-(i*15),-20,"empty_pattern",3,3)
+        create_events("enemy1", 1, 4000+(30*i), 30,90-(i*15),-20,"empty_pattern",3,3,9)
     end
-    create_events("enemy1", 4, 3300, 45,-30,5,"zig_zag_2","group_1",2,4)
+    create_events("enemy1", 4, 3300, 45,-30,5,"zig_zag_2","group_1",2,4,10)
     init_session()
     print_debug_message = false
     decoration_speed = 1
@@ -115,7 +115,10 @@ function _update60()
             check_event_timeline()
             move_background()
             if boss_killed == false then
-            boss_ai()
+                boss_ai()
+                if cur_frame > 5175 then
+                    boss_collision()
+                end
             end
             move_boss_bullets()
             enemy_bullet_direction = flr(rnd(3))
@@ -156,8 +159,8 @@ function _draw()
     cls(black)
     if game_state == "title" then
         draw_title_logo()
-        print("press ❎ to start",hcenter("press ❎ to start "),60,white) 
-        print("high score = " .. hi_score,hcenter("high score = " .. hi_score),100,white) 
+        print("press ❎ to start",hcenter("press ❎ to start ")-title_offset,60,white) 
+        print("high score = " .. hi_score,hcenter("high score = " .. hi_score)-title_offset,100,white) 
     else 
         if game_state == "gameplay" then
             
@@ -171,8 +174,7 @@ function _draw()
             draw_enemies()
             draw_explosions()
             if boss_killed == false then
-            create_boss()
-            boss_collision()
+                create_boss()
             end
             end_game()
             --KEEP THIS LAST. THAT MEANS YOU KRIS.
@@ -257,9 +259,10 @@ end
 function boss_ai()
     if boss_exists == true then
         move_boss()
-        check_boss_fires()
-        
         play_boss_music()
+        if cur_frame > 5150 then
+            check_boss_fires()
+        end
     end
 end
 
@@ -287,6 +290,7 @@ function boss_collision()
 end
 
 function move_boss()
+    if boss_killed == false then
     if cur_frame%2 == 0 then
         if boss.direction == left then
             boss.x -= 1
@@ -301,6 +305,8 @@ function move_boss()
             boss.direction = left
         end
     end
+end
+
     
 end
 
@@ -349,7 +355,7 @@ function move_boss_bullets()
     end
 end
 
-function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,speed)
+function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,speed,color_change)
     for i=1,quantity do 
         local event = {}
         event.eventType = eventType
@@ -359,6 +365,7 @@ function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,
         event.p = pattern
         event.g = group_id
         event.s = speed
+        event.colour_change = color_change
         add(event_timeline, event)
     end
 end
@@ -410,7 +417,7 @@ function player_fire()
     sfx(0)
 end
 
-function spawn_enemy_event(x, y,pattern,group,speed)
+function spawn_enemy_event(x, y,pattern,group,speed,colour_change)
     local enemy={}
     enemy.alive=true
     enemy.x=x
@@ -429,6 +436,7 @@ function spawn_enemy_event(x, y,pattern,group,speed)
     enemy.width = 8
     enemy.logic = create_enemy_data(pattern,speed)
     enemy.group = group
+    enemy.color = colour_change
     add(enemies, enemy)
 end
 
@@ -436,7 +444,7 @@ end
 function check_event_timeline()
     for event in all(event_timeline) do
         if(event.eventType=="enemy1" and cur_frame==event.startFrame) then
-            spawn_enemy_event(event.x,event.y,event.p,event.g,event.s)
+            spawn_enemy_event(event.x,event.y,event.p,event.g,event.s,event.colour_change)
         end
     end
 end
@@ -720,8 +728,13 @@ end
 
 function end_game ()
     if boss_killed == true then
-        print("you win",52,60,colour_cycle)
+        print("you win",hcenter("you win"),60,colour_cycle)
         win_frame+=1
+        boss.x = boss.x
+        if cur_frame%15 == 0 then
+        create_explosion(boss.x+flr(rnd(8)),boss.y+flr(rnd(8)))
+        sfx(2)
+        end
     end
     if cur_frame%8 == 0 then
         colour_cycle+= 1
@@ -816,7 +829,10 @@ end
     
     function draw_enemies()
         for enemy in all(enemies) do 
+            --default colour is 12, change to 8 9 10 or 11
+            pal(12,enemy.color,0)
             spr(19,enemy.x,enemy.y)
+            pal()
         end
     end
     
@@ -888,9 +904,21 @@ end
             pal()
             
         end
+
+        if (cur_frame > 1500 ) then
+            pal(1,6,0)
+            pal(13,5,0)
+            spr(238,25,decoration_ypos-136+decoration_speed)
+            spr(239,33,decoration_ypos-136+decoration_speed)
+            spr(254,25,decoration_ypos-128+decoration_speed)
+            spr(255,33,decoration_ypos-128+decoration_speed)
+            pal()
+            
+        end
     end
 
     function draw_title_logo()
+
         for i=1,8 do
             spr(80+i,title_frame+(8*i)-title_offset,8)
             spr(96+i,title_frame+(8*i)-title_offset,16)
