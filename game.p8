@@ -16,22 +16,38 @@ function _init()
     title_frame = -80
     -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,speed,color_change)
     -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,default_speed,colour)
-    create_events("enemy1", 4, 100, 35,80,-20,"empty_pattern",nil,2,12)  
-    create_events("enemy1", 4, 500, 35,40,-20,"empty_pattern",nil,2,8)
-    create_events("enemy1", 4, 900, 44,20,-20,"square",1,4,9)
-    create_events("enemy1", 4, 1500, 44,-30,5,"zig_zag",2,4,10)   
-    for i=1,5 do
-        create_events("enemy1", 1, 1900+(30*i), 30,15+(i*15),-20,"empty_pattern",3,3,11)
+    create_events("enemy1", 2, 100, 45,80,-20,"empty_pattern",nil,2,12)  
+    create_events("enemy1", 2, 250, 45,40,-20,"empty_pattern",nil,2,12)
+    create_events("enemy1", 2, 400, 45,20,-20,"empty_pattern",nil,2,12)
+    create_events("enemy1", 2, 550, 45,60,-20,"empty_pattern",nil,2,12)
+    create_events("enemy1", 4, 700, 44,20,-20,"square",1,4,8)
+    create_events("enemy1", 4, 1200, 44,-30,5,"zig_zag",2,4,9)   
+    for i=1,3 do
+        create_events("enemy1", 1, 1600+(30*i), 30,15+(i*15),-20,"empty_pattern",nil,2,7)
     end
-    create_events("enemy1", 8, 2250, 60,-30,15,"wave",4,4,12)
+    for i=1,3 do
+        create_events("enemy1", 1, 1800+(30*i), 30,110-(i*15),-20,"empty_pattern",3,2,6)
+    end
+    create_events("enemy1", 4, 2000, 60,-30,15,"wave",4,4,10)
+    for i=1,3 do
+        create_events("enemy1", 1, 2300+(30*i), 30,100-(i*15),-20,"empty_pattern",4,2,7)
+    end
+    create_events("enemy1", 4, 2700, 45,-50,45,"zig_zag_2",2,4,11)
     for i=1,5 do
-        create_events("enemy1", 1, 2800+(30*i), 30,100-(i*15),-20,"empty_pattern",3,3,8)
+        create_events("enemy1", 1, 3000+(30*i), 30,90-(i*15),-20,"empty_pattern",5,3,6)
     end
     for i=1,5 do
-        create_events("enemy1", 1, 4000+(30*i), 30,90-(i*15),-20,"empty_pattern",3,3,9)
+        create_events("enemy1", 1, 3200+(30*i), 30,30+(i*15),-20,"empty_pattern",5,3,7)
     end
-    create_events("enemy1", 4, 3300, 45,-30,5,"zig_zag_2",2,4,10)
-    create_events("enemy1", 2, 4500, 44,-30,5,"zig_zag",2,4,10) 
+
+    create_events("enemy1", 3, 3500, 44,-30,5,"wave",nil,4,10) 
+    create_events("enemy1", 3, 3750, 45,-50,45,"zig_zag_2",6,4,11)
+    create_events("enemy1", 3, 4000, 44,-30,5,"wave",6,4,10) 
+    create_events("enemy1", 3, 4250, 45,-50,45,"zig_zag_2",7,4,11)
+    create_events("enemy1", 3, 4500, 44,-30,45,"wave",7,4,10) 
+   
+    create_events("enemy1", 2, 4800, 44,20,-20,"square",8,4,8)
+
     init_session()
     print_debug_message = false
     decoration_speed = 1
@@ -43,12 +59,15 @@ end
 
 function init_session()
     create_player_vars()
+    final_powerups = 0
+    boss_music_fast = false
+    extra_lives = 0
     colour_cycle = 0
     enemies={}
     boss={}
     boss_hit = false
     boss_exists = false
-    boss.x=200
+    boss.x=150
     boss.y=10
     boss.width = 16
     boss.height = 16
@@ -119,9 +138,11 @@ function _update60()
             player_collision_with_ship()
             check_event_timeline()
             move_background()
+            check_extra_lives()
+            check_time_out()
             if boss_killed == false then
                 boss_ai()
-                if cur_frame > 5175 then
+                if cur_frame > 5000 then
                     boss_collision()
                 end
             end
@@ -217,7 +238,7 @@ function create_enemy_data(pattern,speed)
     empty_pattern.exit_d = "down"
     empty_pattern.exit_s = speed
     empty_pattern.fire = true
-    empty_pattern.fire_rate = 65
+    empty_pattern.fire_rate = 55
     patterns.empty_pattern = empty_pattern
     local zig_zag = {}
     zig_zag.path = {{100,25,2},{45,80,3},{100,80,3}}
@@ -227,7 +248,7 @@ function create_enemy_data(pattern,speed)
     zig_zag.fire_rate = 80
     patterns.zig_zag = zig_zag
     local zig_zag_2 = {}
-    zig_zag_2.path = {{100,65,2},{45,20,3},{100,30,3}}
+    zig_zag_2.path = {{0,30+30,3},{15,15+30,2},{30,30+30,3},{45,15+30,3},{60,30+30,2},{75,15+30,3},{90,30+30,3},{115,15+30,3},{130,30+30,3}}
     zig_zag_2.exit_d = "down"
     zig_zag_2.exit_s = speed
     zig_zag_2.fire = true
@@ -240,8 +261,6 @@ function create_enemy_data(pattern,speed)
     wave.fire = true
     wave.fire_rate = 80
     patterns.wave = wave
-
-    
     return patterns[pattern]
 end
 
@@ -256,6 +275,10 @@ function create_boss()
         end
         if boss.hp < 11 then
             pal(12,8,0)
+            if boss_music_fast == false then
+            music(9)
+            end
+            boss_music_fast = true
         end
     sspr(112,0,16,16,boss.x,boss.y)
     pal()
@@ -271,7 +294,7 @@ function boss_ai()
     if boss_exists == true then
         move_boss()
         play_boss_music()
-        if cur_frame > 5150 then
+        if cur_frame > 5250 then
             check_boss_fires()
         end
     end
@@ -395,6 +418,29 @@ function check_game_started()
     end
 end
 
+function check_time_out()
+    if cur_frame > 30000 then
+        player.lives = 0
+    end
+end
+
+function check_extra_lives()
+    if extra_lives == 0 then
+        if player.score > 5000 then
+            extra_lives = 1
+            player.lives += 1
+            sfx(11)
+        end
+    end
+    if extra_lives == 1 then
+        if player.score > 10000 then
+            extra_lives = 2
+            player.lives += 1
+            sfx(11)
+        end
+    end
+end
+
 function create_player_vars()
     player={}
     player.alive=true
@@ -488,7 +534,9 @@ function handle_input()
             end
         end
         if btn(up) then
+            if player.y != 1 then
             player.y -= 1
+            end
         end
         if btn(down) then
             if player.y < 105 then
@@ -503,7 +551,7 @@ function handle_input()
             end
         end
         if btnp(fire2) then
-            player.lives += 1
+            --player.lives += 1
         end
     end
 end
@@ -749,6 +797,12 @@ function end_game ()
         boss.x = boss.x
         if cur_frame%15 == 0 then
         create_explosion(boss.x+flr(rnd(8)),boss.y+flr(rnd(8)))
+        if final_powerups == 0 then
+            for i=1,3 do
+            create_powerup(boss.x+flr(rnd(8)),boss.y)
+            final_powerups = 1
+            end
+        end
         sfx(2)
         end
     end
@@ -894,13 +948,6 @@ end
         print(game_state,45,50,blue)
     end
 
-    function hcenter(s)
-        -- screen center minus the
-        -- string length times the 
-        -- pixels in a char's width,
-        -- cut in half
-        return 64-#s*2
-      end
 
     function draw_decorations()
         if (cur_frame > 500 ) then
@@ -946,19 +993,16 @@ end
             
         end
     end
-    -->8
-    --game states?
 
-    
--- function draw_enemy_hitbox () --testing where the hitbox is
---     rect(enemy.x+1,enemy.y+7,enemy.x+6,enemy.y,white)
--- end 
+    function hcenter(s)
+        -- screen center minus the
+        -- string length times the 
+        -- pixels in a char's width,
+        -- cut in half
+        return 64-#s*2
+      end
 
---draw_particles() enable this to show a small effect in the corner
-    --pset(30,30,dark_blue) draws to an individual pixel
-    --draw_enemy_hitbox()
 
-    --49 to 52 = stars
 __gfx__
 00000000088000000000b000005500000088bb00009999000000b333880000000022000000000000000000000000000000000000000000000000555555550000
 0000000087e80000000b0b000511500009993b8009777790000b3773880000000488400000000000000000000000000000000000000000000005111111115000
@@ -1096,9 +1140,9 @@ __sfx__
 01120000107600e740107500e74010762007011375210752007000070115774157551176211752107740070015735157071577011755107600e7550070011762107400e7550070011762107600e775107440e760
 01100020007720c722007720c7220577211722057721172204772107220477210722007720c722007720c7220c762187220c76218722117621d722117621d722107621c722107621c7220c762187220c76218722
 0110000018053180533061300000180630c00330613000000c0630c06330613000000c0630c003306130000018063180633061300000180630c00330613000000c0630c06330613000000c0630c0633061300000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+010c0000007720c722007720c7220577211722057721172204772107220477210722007720c722007720c7220c762187220c76218722117621d722117621d722107621c722107621c7220c762187220c76218722
+010c000018053180533061300000180630c00330613000000c0630c06330613000000c0630c003306130000018063180633061300000180630c00330613000000c0630c06330613000000c0630c0633061300000
+010800001f5521d5551c5521a5551f552215551f5522155223552245522650028500295002f502005020050200502005020050200502005020050200502005020050200502005020050200502005020050200502
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1114,4 +1158,5 @@ __music__
 00 41424344
 00 41424344
 03 08074344
+03 0a094344
 
