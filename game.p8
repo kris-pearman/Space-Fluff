@@ -1,6 +1,9 @@
 pico-8 cartridge // http://www.pico-8.com
 version 18
 __lua__
+--space fluff
+--a 2020 fluff games production
+
 left,right,up,down,fire1,fire2=0,1,2,3,4,5
 black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,orange,yellow,green,blue,indigo,pink,peach=0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15
 
@@ -47,7 +50,7 @@ function init_session()
     boss.y=10
     boss.width = 16
     boss.height = 16
-    boss.hp = 10
+    boss.hp = 20
     boss_killed = false
     boss.bullets={}
     bullets={}
@@ -295,13 +298,13 @@ function move_boss()
         if boss.direction == left then
             boss.x -= 1
         end
-        if boss.x < 20 then
+        if boss.x < 15 then
             boss.direction = right
         end
         if boss.direction == right then
             boss.x += 1
         end
-            if boss.x>80 then
+            if boss.x>113 then
             boss.direction = left
         end
     end
@@ -312,7 +315,7 @@ end
 
 
 function check_boss_fires()
-    if cur_frame%45 == 0 then
+    if cur_frame%55 == 0 then
         for i=1,3,1 do 
             spawn_boss_bullet(i)
         end
@@ -481,7 +484,7 @@ function handle_input()
             end
         end
         if btnp(fire1) then
-            if (cool_down == 0 and num_of_bullets < 3) then
+            if (cool_down == 0 and num_of_bullets < 4) then
                 player_fire()    
                 cool_down = 4
                 num_of_bullets += 1
