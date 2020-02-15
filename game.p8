@@ -30,7 +30,7 @@ function _init()
     end
     create_events("enemy1", 4, 2000, 60,-30,15,"wave",4,4,10)
     for i=1,3 do
-        create_events("enemy1", 1, 2300+(30*i), 30,100-(i*15),-20,"empty_pattern",4,2,7)
+        create_events("enemy1", 1, 2400+(30*i), 30,100-(i*15),-20,"empty_pattern",4,2,7)
     end
     create_events("enemy1", 4, 2700, 45,-50,45,"zig_zag_2",2,4,11)
     for i=1,5 do
@@ -142,7 +142,7 @@ function _update60()
             check_time_out()
             if boss_killed == false then
                 boss_ai()
-                if cur_frame > 5000 then
+                if cur_frame > 5200 then
                     boss_collision()
                 end
             end
@@ -252,20 +252,20 @@ function create_enemy_data(pattern,speed)
     zig_zag_2.exit_d = "down"
     zig_zag_2.exit_s = speed
     zig_zag_2.fire = true
-    zig_zag_2.fire_rate = 80
+    zig_zag_2.fire_rate = 70
     patterns.zig_zag_2 = zig_zag_2
     local wave = {}
     wave.path = {{0,30,3},{15,15,3},{30,30,3},{45,15,3},{60,30,3},{75,15,3},{90,30,3},{115,15,3},{130,30,3}}
     wave.exit_d = "down"
     wave.exit_s = speed
     wave.fire = true
-    wave.fire_rate = 80
+    wave.fire_rate = 70
     patterns.wave = wave
     return patterns[pattern]
 end
 
 function create_boss()
-    if cur_frame > 5000 then
+    if cur_frame > 5200 then
         if boss_exists != true then
         music(-1,240)
         end
@@ -294,14 +294,14 @@ function boss_ai()
     if boss_exists == true then
         move_boss()
         play_boss_music()
-        if cur_frame > 5250 then
+        if cur_frame > 5350 then
             check_boss_fires()
         end
     end
 end
 
 function play_boss_music()
-    if cur_frame == 5120 then
+    if cur_frame == 5320 then
     music(8)
     end
 end
@@ -792,7 +792,7 @@ end
 function end_game ()
     if boss_killed == true then
         print("you win",hcenter("you win"),40,colour_cycle)
-        print("lives bonus: " .. player.lives*2000,hcenter("lives bonus: " .. player.lives*2000),60,colour_cycle)
+        print("lives bonus: " .. player.lives*500,hcenter("lives bonus: " .. player.lives*500),60,colour_cycle)
         win_frame+=1
         boss.x = boss.x
         if cur_frame%15 == 0 then
@@ -810,7 +810,7 @@ function end_game ()
         colour_cycle+= 1
     end
     if win_frame > 300 then
-        player.score = player.score + (player.lives*2000)
+        player.score = player.score + (player.lives*500)
         player.lives = 0
     end
     
