@@ -6,26 +6,27 @@ black,dark_blue,dark_purple,dark_green,brown,dark_gray,light_gray,white,red,oran
 
 --main loop functions
 function _init()
+    game_loaded = false
     event_timeline = {}
     game_state = "title"
     hi_score=0
     title_frame = -80
     -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,default_speed)
-    create_events("enemy1", 4, 100, 30,80,-20,"empty_pattern",nil,2)  
-    create_events("enemy1", 4, 500, 30,40,-20,"empty_pattern",nil,2)
-    create_events("enemy1", 4, 900, 25,20,-20,"square","group_1",1,4)
-    create_events("enemy1", 4, 1500, 25,-30,5,"zig_zag","group_1",2,4)   
+    create_events("enemy1", 4, 100, 35,80,-20,"empty_pattern",nil,2)  
+    create_events("enemy1", 4, 500, 35,40,-20,"empty_pattern",nil,2)
+    create_events("enemy1", 4, 900, 44,20,-20,"square","group_1",1,4)
+    create_events("enemy1", 4, 1500, 44,-30,5,"zig_zag","group_1",2,4)   
     for i=1,5 do
-        create_events("enemy1", 1, 1900+(20*i), 30,15+(i*15),-20,"empty_pattern",3,3)
+        create_events("enemy1", 1, 1900+(30*i), 30,15+(i*15),-20,"empty_pattern",3,3)
     end
-    create_events("enemy1", 8, 2250, 20,-30,15,"wave",4,4)
+    create_events("enemy1", 8, 2250, 60,-30,15,"wave",4,4)
     for i=1,5 do
-        create_events("enemy1", 1, 2600+(20*i), 30,100-(i*15),-20,"empty_pattern",3,3)
+        create_events("enemy1", 1, 2800+(30*i), 30,100-(i*15),-20,"empty_pattern",3,3)
     end
     for i=1,5 do
-        create_events("enemy1", 1, 3400+(20*i), 30,90-(i*15),-20,"empty_pattern",3,2)
+        create_events("enemy1", 1, 4000+(30*i), 30,90-(i*15),-20,"empty_pattern",3,3)
     end
-    create_events("enemy1", 4, 3000, 25,-30,5,"zig_zag_2","group_1",2,4)
+    create_events("enemy1", 4, 3300, 45,-30,5,"zig_zag_2","group_1",2,4)
     init_session()
     print_debug_message = false
     decoration_speed = 1
@@ -37,9 +38,11 @@ end
 
 function init_session()
     create_player_vars()
-    
+    colour_cycle = 0
     enemies={}
     boss={}
+    boss_hit = false
+    boss_exists = false
     boss.x=200
     boss.y=10
     boss.width = 16
@@ -59,6 +62,7 @@ function init_session()
     invuln_timer = 0
     explosions = {}
     decoration_ypos = 1
+    win_frame=0
     
     for i=1,100 do
         local background_star = {}
@@ -86,6 +90,8 @@ function _update60()
         check_game_started()
         if title_frame < 22 then
             title_frame += 1
+        else
+            game_loaded = true
         end
         if transition == true then
             title_offset+=2
@@ -95,7 +101,7 @@ function _update60()
             transition = false
             game_state = "gameplay"
             title_offset = 0
-            music(0,60)
+            music(0,300)
         end
     else
         if game_state == "gameplay" then
@@ -111,6 +117,7 @@ function _update60()
             if boss_killed == false then
             boss_ai()
             end
+            move_boss_bullets()
             enemy_bullet_direction = flr(rnd(3))
             cur_frame += 1
             if cool_down > 0 then
@@ -167,6 +174,7 @@ function _draw()
             create_boss()
             boss_collision()
             end
+            end_game()
             --KEEP THIS LAST. THAT MEANS YOU KRIS.
             draw_hud()
         else 
@@ -190,7 +198,7 @@ function create_enemy_data(pattern,speed)
     square.exit_d = "down"
     square.exit_s = 1
     square.fire = true
-    square.fire_rate = 100
+    square.fire_rate = 60
     patterns.square = square
     local enemy_two = {}
     enemy_two.path = {{80,128,4}}
@@ -230,9 +238,18 @@ end
 
 function create_boss()
     if cur_frame > 5000 then
-        music(-1,60)
-        
+        if boss_exists != true then
+        music(-1,240)
+        end
+        if boss_hit == true then
+            pal(1,7,0)
+            pal(2,7,0)
+        end
     sspr(112,0,16,16,boss.x,boss.y)
+        if boss_hit == true then
+            pal()
+            boss_hit = false
+        end
     boss_exists = true
     end
 end
@@ -241,7 +258,14 @@ function boss_ai()
     if boss_exists == true then
         move_boss()
         check_boss_fires()
-        move_boss_bullets()
+        
+        play_boss_music()
+    end
+end
+
+function play_boss_music()
+    if cur_frame == 5120 then
+    music(8)
     end
 end
 
@@ -249,13 +273,16 @@ function boss_collision()
     for bullet in all(bullets) do
         if (objects_have_collided(bullet, boss)) then
             boss.hp -=1
+            boss_hit = true
             del(bullets,bullet)
             num_of_bullets -= 1
+            sfx(2)
         end
     end
-    if boss.hp < 1 then
+    if (boss.hp < 1 and boss_killed == false) then
         boss_killed = true
         player.score += 10000
+        
     end
 end
 
@@ -337,11 +364,12 @@ function create_events(eventType, quantity, initialFrame, frequency,x,y,pattern,
 end
 
 function check_game_started()
-    if btnp(fire2) then
-        transition = true
-        sfx(16)
-        
-        init_session()
+    if game_loaded == true then
+        if btnp(fire2) then
+            transition = true
+            sfx(16)
+            init_session()
+        end
     end
 end
 
@@ -580,7 +608,7 @@ function enemy_collision()
             if (objects_have_collided(bullet, enemy)) then
                 enemy.alive = false
                 player.score += enemy.value
-                create_explosion(enemy.x+2,enemy.y+1)
+                create_explosion(enemy.x+4,enemy.y+3)
                 del(bullets, bullet)
                 num_of_bullets -= 1
                 if enemy.group  ~= nil  then
@@ -592,7 +620,7 @@ function enemy_collision()
                         end
                     end
                     if counter == 0 then
-                        create_powerup(enemy.x-1,enemy.y-3)
+                        create_powerup(enemy.x,enemy.y-1)
                     end
                 end
 
@@ -689,9 +717,23 @@ function draw_background ()
     end
 end
 
+function end_game ()
+    if boss_killed == true then
+        print("you win",52,60,colour_cycle)
+        win_frame+=1
+    end
+    if cur_frame%8 == 0 then
+        colour_cycle+= 1
+    end
+    if win_frame > 300 then
+        player.lives = 0
+    end
+    
+end
+
 function draw_explosions ()
     for explosion in all (explosions) do
-        if explosion.t < 10 then
+        if explosion.t < 12 then
             circ(explosion.x,explosion.y,explosion.t,red)
             circ(explosion.x,explosion.y,explosion.t-1,orange)
             circ(explosion.x,explosion.y,explosion.t-2,yellow)
@@ -872,14 +914,14 @@ __gfx__
 000000000000000088888888005500009aa99988979999793773bb3300000000856658000000000000000000000000000000000000000000512277776c1c2215
 000000000000000008800880000000000999988009777790373bb3b300000000044440000000000000000000000000000000000000000000512d7776c1c1d215
 0000000000000000000000000000000000888800009999003333333300000000000000000000000000000000000000000000000000000000512d776c1c1cd215
-0000000000000000000000000055550000000000000000000000000000000000000220000000000000000000000000000000000000000000512d76c1c1c1d215
-0000000000000000000000000511115000000000000000000000000000000000004884000000000000000000000000000000000000000000512d6c1c1c1cd215
-00000000000000000000000051776c15000000000000000000000000000000000081180000000000000000000000000000000000000000005122c1c1c1c12215
-0000000000000000000000005176cc150000000000000000000000000000000008855880000000000000000000000000000000000000000051122c1c1c122115
-000000000000000000000000516ccc1500000000000000000000000000000005045555405000000000000000000000000000000000000000051122dddd221150
-00000000000000000000000051cccc15000000000000000000000000000000050856658050000000000000000000000000000000000000000051122222211500
-00000000000000000000000005111150000000000000000000000000600000056688886650000046000000000000000000000000000000000005111111115000
-00000000000000000000000000555500000000000000000000000000000000000008800000000000000000000000000000000000000000000000555555550000
+0000000000000000000000000056650000000000000000000000000000000000000220000000000000000000000000000000000000000000512d76c1c1c1d215
+0000000000000000000000000521125000000000000000000000000000000000004884000000000000000000000000000000000000000000512d6c1c1c1cd215
+000000000000000000000000521dd125000000000000000000000000000000000081180000000000000000000000000000000000000000005122c1c1c1c12215
+00000000000000000000000061dd5c160000000000000000000000000000000008855880000000000000000000000000000000000000000051122c1c1c122115
+00000000000000000000000061d6cc1600000000000000000000000000000005045555405000000000000000000000000000000000000000051122dddd221150
+000000000000000000000000521cc125000000000000000000000000000000050856658050000000000000000000000000000000000000000051122222211500
+00000000000000000000000005211250000000000000000000000000600000056688886650000046000000000000000000000000000000000005111111115000
+00000000000000000000000000566500000000000000000000000000000000000008800000000000000000000000000000000000000000000000555555550000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -998,8 +1040,8 @@ __sfx__
 011200201073502744177001774515735107030474313745157421a72202700107451c7200474209705137420970515740097031574000705137401c720117400b7050e742107410472002750007001375017720
 011200200c0430c04300004000043c6150000400004000040c043000040c043000043c61500004000040c0430c0430c043000040c0433c615000040c043000040004400004000040c0433c6150c0430000400004
 01120000107600e740107500e74010762007011375210752007000070115774157551176211752107740070015735157071577011755107600e7550070011762107400e7550070011762107600e775107440e760
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
-001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
+01100020007720c722007720c7220577211722057721172204772107220477210722007720c722007720c7220c762187220c76218722117621d722117621d722107621c722107621c7220c762187220c76218722
+0110000018053180533061300000180630c00330613000000c0630c06330613000000c0630c003306130000018063180633061300000180630c00330613000000c0630c06330613000000c0630c0633061300000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
 001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000
@@ -1011,4 +1053,11 @@ __sfx__
 __music__
 00 03040544
 02 05030644
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+00 41424344
+03 08074344
 
