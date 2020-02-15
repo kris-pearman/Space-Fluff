@@ -156,8 +156,8 @@ function _draw()
     cls(black)
     if game_state == "title" then
         draw_title_logo()
-        print("press ❎ to start",28-title_offset,60,white) 
-        print("high score = " .. hi_score,33-title_offset,100,white) 
+        print("press ❎ to start",hcenter("press ❎ to start "),60,white) 
+        print("high score = " .. hi_score,hcenter("high score = " .. hi_score),100,white) 
     else 
         if game_state == "gameplay" then
             
@@ -682,6 +682,7 @@ function player_collision_with_ship()
             if (objects_have_collided(enemy, player)) then
                 sfx(0)
                 del(enemies,enemy)
+                create_explosion(enemy.x+4,enemy.y+3)
                 handle_player_death()
             end
         end
@@ -859,6 +860,14 @@ end
     function draw_game_over()
         print(game_state,45,50,blue)
     end
+
+    function hcenter(s)
+        -- screen center minus the
+        -- string length times the 
+        -- pixels in a char's width,
+        -- cut in half
+        return 64-#s*2
+      end
 
     function draw_decorations()
         if (cur_frame > 500 ) then
