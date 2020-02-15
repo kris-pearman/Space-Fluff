@@ -14,11 +14,12 @@ function _init()
     game_state = "title"
     hi_score=0
     title_frame = -80
+    -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,speed,color_change)
     -- (eventType, quantity, initialFrame, frequency,x,y,pattern,group_id,default_speed,colour)
     create_events("enemy1", 4, 100, 35,80,-20,"empty_pattern",nil,2,12)  
     create_events("enemy1", 4, 500, 35,40,-20,"empty_pattern",nil,2,8)
-    create_events("enemy1", 4, 900, 44,20,-20,"square","group_1",1,4,9)
-    create_events("enemy1", 4, 1500, 44,-30,5,"zig_zag","group_1",2,4,10)   
+    create_events("enemy1", 4, 900, 44,20,-20,"square",1,4,9)
+    create_events("enemy1", 4, 1500, 44,-30,5,"zig_zag",2,4,10)   
     for i=1,5 do
         create_events("enemy1", 1, 1900+(30*i), 30,15+(i*15),-20,"empty_pattern",3,3,11)
     end
@@ -29,7 +30,8 @@ function _init()
     for i=1,5 do
         create_events("enemy1", 1, 4000+(30*i), 30,90-(i*15),-20,"empty_pattern",3,3,9)
     end
-    create_events("enemy1", 4, 3300, 45,-30,5,"zig_zag_2","group_1",2,4,10)
+    create_events("enemy1", 4, 3300, 45,-30,5,"zig_zag_2",2,4,10)
+    create_events("enemy1", 2, 4500, 44,-30,5,"zig_zag",2,4,10) 
     init_session()
     print_debug_message = false
     decoration_speed = 1
@@ -162,7 +164,7 @@ function _draw()
     cls(black)
     if game_state == "title" then
         draw_title_logo()
-        print("press ❎ to start",hcenter("press ❎ to start ")-title_offset,60,white) 
+        print("press ❎ to start",hcenter("press ❎ to start ")-title_offset,64,white) 
         print("high score = " .. hi_score,hcenter("high score = " .. hi_score)-title_offset,100,white) 
     else 
         if game_state == "gameplay" then
@@ -214,6 +216,8 @@ function create_enemy_data(pattern,speed)
     empty_pattern.path = nil
     empty_pattern.exit_d = "down"
     empty_pattern.exit_s = speed
+    empty_pattern.fire = true
+    empty_pattern.fire_rate = 65
     patterns.empty_pattern = empty_pattern
     local zig_zag = {}
     zig_zag.path = {{100,25,2},{45,80,3},{100,80,3}}
@@ -250,7 +254,11 @@ function create_boss()
             pal(1,7,0)
             pal(2,7,0)
         end
+        if boss.hp < 11 then
+            pal(12,8,0)
+        end
     sspr(112,0,16,16,boss.x,boss.y)
+    pal()
         if boss_hit == true then
             pal()
             boss_hit = false
@@ -279,6 +287,7 @@ function boss_collision()
     for bullet in all(bullets) do
         if (objects_have_collided(bullet, boss)) then
             boss.hp -=1
+            player.score += 100
             boss_hit = true
             del(bullets,bullet)
             num_of_bullets -= 1
@@ -294,7 +303,12 @@ end
 
 function move_boss()
     if boss_killed == false then
-    if cur_frame%2 == 0 then
+        if boss.hp > 10 then
+            boss_speed = 2
+        else
+            boss_speed = 1
+        end
+    if cur_frame%boss_speed == 0 then
         if boss.direction == left then
             boss.x -= 1
         end
@@ -304,13 +318,11 @@ function move_boss()
         if boss.direction == right then
             boss.x += 1
         end
-            if boss.x>113 then
+            if boss.x>97 then
             boss.direction = left
         end
     end
 end
-
-    
 end
 
 
@@ -486,12 +498,12 @@ function handle_input()
         if btnp(fire1) then
             if (cool_down == 0 and num_of_bullets < 4) then
                 player_fire()    
-                cool_down = 4
+                cool_down = 5
                 num_of_bullets += 1
             end
         end
         if btnp(fire2) then
-           
+            player.lives += 1
         end
     end
 end
@@ -731,7 +743,8 @@ end
 
 function end_game ()
     if boss_killed == true then
-        print("you win",hcenter("you win"),60,colour_cycle)
+        print("you win",hcenter("you win"),40,colour_cycle)
+        print("lives bonus: " .. player.lives*2000,hcenter("lives bonus: " .. player.lives*2000),60,colour_cycle)
         win_frame+=1
         boss.x = boss.x
         if cur_frame%15 == 0 then
@@ -743,6 +756,7 @@ function end_game ()
         colour_cycle+= 1
     end
     if win_frame > 300 then
+        player.score = player.score + (player.lives*2000)
         player.lives = 0
     end
     
@@ -923,12 +937,12 @@ end
     function draw_title_logo()
 
         for i=1,8 do
-            spr(80+i,title_frame+(8*i)-title_offset,8)
-            spr(96+i,title_frame+(8*i)-title_offset,16)
-            spr(112+i,title_frame+(8*i)-title_offset,24)
-            spr(88+i,title_frame+(8*i+8)-title_offset,26)
-            spr(104+i,title_frame+(8*i+8)-title_offset,34)
-            spr(120+i,title_frame+(8*i+8)-title_offset,42)
+            spr(80+i,title_frame+(8*i)+2-title_offset,8)
+            spr(96+i,title_frame+(8*i)+2-title_offset,16)
+            spr(112+i,title_frame+(8*i)+2-title_offset,24)
+            spr(88+i,title_frame+(8*i+8)+2-title_offset,26)
+            spr(104+i,title_frame+(8*i+8)+2-title_offset,34)
+            spr(120+i,title_frame+(8*i+8)+2-title_offset,42)
             
         end
     end
